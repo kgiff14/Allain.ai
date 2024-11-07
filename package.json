@@ -1,0 +1,67 @@
+{
+  "name": "allain",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "set PORT=3000 && react-scripts start",
+    "server": "node server/server.js",
+    "dev": "concurrently \"npm run start\" \"npm run server\"",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "clean": "rimraf node_modules package-lock.json",
+    "reinstall": "npm run clean && npm install"
+  },
+  "dependencies": {
+    "@tailwindcss/typography": "^0.5.15",
+    "@tensorflow-models/universal-sentence-encoder": "^1.3.3",
+    "@tensorflow/tfjs": "^3.21.0",
+    "@tensorflow/tfjs-backend-cpu": "^3.21.0",
+    "@tensorflow/tfjs-backend-webgl": "^3.21.0",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.6.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "lodash": "^4.17.21",
+    "lucide-react": "0.454.0",
+    "node-fetch": "^2.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^8.0.7",
+    "react-router-dom": "^6.22.2",
+    "react-scripts": "5.0.1",
+    "react-syntax-highlighter": "^15.5.0",
+    "remark-gfm": "^3.0.1",
+    "uuid": "^8.3.2",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.13",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.7",
+    "typescript": "^4.9.5"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

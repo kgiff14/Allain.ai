@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #18181b; /* Equivalent to theme('colors.zinc.900') */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46; /* Equivalent to theme('colors.zinc.700') */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b; /* Equivalent to theme('colors.zinc.600') */
+}
+
+/* Base styles */
+body {
+  @apply bg-zinc-900 text-white antialiased;
+}
+
+/* Custom focus styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-blue-400 ring-opacity-50;
+}
+
+/* Custom styles for the chat input */
+textarea {
+  @apply bg-transparent resize-none;
+}
+
+textarea::placeholder {
+  @apply text-zinc-400;
+}
+
+/* Transitions */
+.transition-all {
+  transition: all 200ms ease-in-out; /* Define transition properties directly */
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.prose ul,
+.prose ol {
+  margin-left: 1rem; /* Adjust to set list indent */
+  padding-left: 1rem; /* Add padding to control spacing */
+}
+
+.prose li {
+  margin-bottom: 0.5rem; /* Add some space between list items */
+}
+
+.animate-slide-right {
+  animation: slideRight 0.3s ease-in-out;
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.3s ease-in-out;
+}
+
+@keyframes slideRight {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideLeft {
+  0% { transform: translateX(-100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.message-box {
+  border-radius: 0.5rem; /* Softer corners */
+  box-shadow: none; /* Reduce or remove shadows */
+  padding: 0.75rem; /* Tighter padding */
+}
+
+.message-box .timestamp {
+  font-size: 0.75rem; /* Smaller timestamp */
+  color: #a1a1a1; /* Subtle color for timestamp */
+}
+
+.message-box .content {
+  font-size: 0.875rem; /* Reduce font size slightly */
+  color: #e0e0e0; /* Lighter message text */
+}
+

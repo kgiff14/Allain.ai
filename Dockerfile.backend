@@ -1,0 +1,30 @@
+FROM node:18-slim
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    tini && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source
+COPY server ./server
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV UV_THREADPOOL_SIZE=32
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Use tini as entrypoint
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Start the server
+CMD ["node", "--prof", "server/server.js"]
