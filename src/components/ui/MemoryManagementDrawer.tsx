@@ -5,7 +5,6 @@ import ConfirmDialog from './ConfirmDialog';
 import { projectStore } from '../../services/projectStore';
 import { improvedVectorStore } from '../../services/improvedVectorStore';
 import { formatBytes } from '../../utils/formatBytes';
-import { fsService } from '../../services/fsService';
 
 interface MemoryManagementDrawerProps {
   isOpen: boolean;

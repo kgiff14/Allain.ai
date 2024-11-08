@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings2, FolderOpen, Gauge } from 'lucide-react';
+import { Settings2, FolderOpen, HardDrive } from 'lucide-react';
 import ConfigDrawer from '../ui/ConfigDrawer';
 import { MemoryManagementDrawer } from '../ui/MemoryManagementDrawer';
 import { usePersona } from '../../hooks/usePersona';
@@ -50,7 +50,7 @@ export const ChatInputHeader: React.FC = () => {
               className="text-zinc-400 hover:text-white transition-colors duration-200"
               aria-label="Memory management"
             >
-              <Gauge size={20} />
+              <HardDrive size={20} />
             </button>
           </div>
 

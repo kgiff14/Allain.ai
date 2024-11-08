@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings2, FolderOpen, Info, Gauge } from 'lucide-react';
+import { ArrowLeft, Settings2, FolderOpen, HardDrive } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ConfigDrawer from '../ui/ConfigDrawer';
 import { MemoryManagementDrawer } from '../ui/MemoryManagementDrawer';
@@ -55,7 +55,7 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
               className="text-zinc-400 hover:text-white transition-colors duration-200"
               aria-label="Memory management"
             >
-              <Gauge size={20} />
+              <HardDrive size={20} />
             </button>
           </div>
 

@@ -134,7 +134,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
           <button
             type="button"
             onClick={handleSubmit}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md 
+            className="px-4 py-2 text-blue-600 hover:text-white rounded-md 
                      transition-colors flex items-center gap-2"
             disabled={!projectData.name.trim()}
           >
