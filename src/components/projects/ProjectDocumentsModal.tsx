@@ -1,5 +1,5 @@
 // components/projects/ProjectDocumentsModal.tsx
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, Upload, FileText, Loader2, Trash2 } from 'lucide-react';
 import { ProjectDocument } from '../../types/project';
 import { formatTimestamp } from '../../utils/formatTimestamp';
@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { improvedDocumentService } from '../../services/improvedDocumentService';
 import { projectStore } from '../../services/projectStore';
 import DocumentViewer from '../ui/DocumentViewer';
+import { validateFiles, FileValidationResult } from '../../utils/fileUploadUtils';
 
 interface ProcessingFile {
   fileName: string;
@@ -41,6 +42,7 @@ interface FileProgress {
     const [processingFiles, setProcessingFiles] = useState<Record<string, FileProgress>>({});
     const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
     const [isViewerOpen, setIsViewerOpen] = useState(false);
+    const modalRef = useRef<HTMLDivElement>(null);  // Add this
   
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -49,6 +51,16 @@ interface FileProgress {
         setError(null);
       
         try {
+            const validation = validateFiles(files);
+  
+            if (validation.invalid.length > 0) {
+                // Show error messages for invalid files
+                setError(validation.invalid.map(({ file, error }) => 
+                `${file.name}: ${error}`
+                ).join('\n'));
+                return;
+            }
+
           for (const file of Array.from(files)) {
             setProcessingFiles(prev => ({
               ...prev,
@@ -142,8 +154,15 @@ interface FileProgress {
     if (!isOpen) return null;
   
     return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-zinc-900 rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div 
+    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    onClick={onClose} // Add this to handle outside clicks
+  >
+        <div 
+        ref={modalRef} 
+        className="bg-zinc-900 rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()} // Add this to prevent closing when clicking the modal itself
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-zinc-800">
             <div className="flex items-center gap-2">
@@ -250,7 +269,7 @@ interface FileProgress {
             </div>
           </div>
         </div>
-      </div>
+  </div>
     );
   };
   

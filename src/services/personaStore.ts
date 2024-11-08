@@ -196,6 +196,29 @@ class PersonaStoreService {
     this.dispatchMemoryCreated(memoryId);
   }
 
+  // Add or update the editMemory method
+  editMemory(personaId: string, memoryId: string, newContent: string): void {
+    const personas = this.getAllPersonas();
+    const updatedPersonas = personas.map(persona => {
+      if (persona.id === personaId) {
+        return {
+          ...persona,
+          memories: (persona.memories || []).map(memory =>
+            memory.id === memoryId
+              ? { ...memory, content: newContent }
+              : memory
+          )
+        };
+      }
+      return persona;
+    });
+
+    // Save to localStorage
+    localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(updatedPersonas));
+    // Dispatch update event
+    this.dispatchPersonaUpdate();
+  }
+
 
   // Helper to get formatted memories for system prompt
   getMemoriesForSystemPrompt(personaId: string): string {

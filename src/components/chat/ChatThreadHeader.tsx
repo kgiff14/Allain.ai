@@ -180,6 +180,9 @@ export const ChatThreadHeader: React.FC<{
         onAddMemory={handleAddMemory}
         onDeleteMemory={handleDeleteMemory}
         onUpdateMemoryConfig={handleUpdateMemoryConfig}
+        onEditMemory={(memoryId, newContent) => {
+          personaStore.editMemory(persona.id, memoryId, newContent);
+        }}
       />
     </>
   );
