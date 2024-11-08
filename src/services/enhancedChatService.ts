@@ -1,6 +1,7 @@
 import { Message } from '../types/types';
 import { Model } from '../components/chat/ModelSelector';
 import { personaStore } from '../services/personaStore';
+import { memoryService } from './memoryService';
 
 export type MessageContent = {
   type: 'text';
@@ -13,6 +14,16 @@ export type MessageContent = {
     data: string;
   };
 };
+
+interface StreamMessageOptions {
+  content: string;
+  messageHistory?: Message[];
+  onChunk: (chunk: string) => void;
+  onMemoryCreated?: (memoryId: string) => void;  // New callback
+  model: Model;
+  ragContext?: string;
+  images?: File[];
+}
 
 interface ModelConfig {
   maxTokens: number;
@@ -123,16 +134,39 @@ class EnhancedChatService {
     return messageContent;
   }
 
-  async streamMessage(
-    content: string,
-    messageHistory: Message[] = [],
-    onChunk: (chunk: string) => void,
-    model: Model,
-    ragContext?: string,
-    images?: File[]
-  ): Promise<Message> {
+  async streamMessage({
+    content,
+    messageHistory = [],
+    onChunk,
+    onMemoryCreated,  // New parameter
+    model,
+    ragContext,
+    images
+  }: StreamMessageOptions): Promise<Message> {
     const config = this.getModelConfig(model);
     const currentPersona = personaStore.getSelectedPersona();
+    
+    // Start memory processing early but don't await it yet
+    const messageId = Date.now().toString();
+    const memoryPromise = currentPersona.memoryConfig?.collectMemories 
+      ? memoryService.processMessageForMemories(
+          { id: messageId, content, role: 'user', timestamp: new Date() },
+          currentPersona.id
+        ).then(memoryContent => {
+          // Notify UI about memory creation if callback provided
+          if (memoryContent && onMemoryCreated) {
+            const memoryId = Date.now().toString();
+            onMemoryCreated(memoryId);
+          }
+          return memoryContent;
+        })
+      : Promise.resolve(null);
+
+    // Get system prompt with memories
+    const systemPromptWithMemories = memoryService.getSystemPromptWithMemories(
+      config.systemMessage,
+      currentPersona
+    );
     
     // Format message history without system message
     const formattedMessages = messageHistory.map(msg => ({
@@ -154,7 +188,7 @@ class EnhancedChatService {
       },
       body: JSON.stringify({
         model: model.apiId,
-        system: config.systemMessage,
+        system: systemPromptWithMemories,
         messages: [
           ...formattedMessages,
           {
@@ -173,33 +207,37 @@ class EnhancedChatService {
     }
 
     let fullContent = '';
-    const messageId = Date.now().toString();
 
     try {
       for await (const chunk of this.streamResponse(response)) {
         fullContent += chunk;
         onChunk(chunk);
       }
+
+      // Create message with explicitly typed role
+      const message: Message = {
+        id: messageId,
+        content: fullContent,
+        role: 'assistant' as const, // Explicitly type the role
+        timestamp: new Date(),
+        persona: {
+          id: currentPersona.id,
+          name: currentPersona.name
+        },
+        model: {
+          name: model.name,
+          id: model.id
+        }
+      };
+
+      // Now we can await the memory processing
+      await memoryPromise;
+
+      return message;
     } catch (error) {
       console.error('Error in stream processing:', error);
       throw error;
     }
-
-    // Create message with persona information
-    return {
-      id: messageId,
-      content: fullContent,
-      role: 'assistant',
-      timestamp: new Date(),
-      persona: {
-        id: currentPersona.id,
-        name: currentPersona.name
-      },
-      model: {
-        name: model.name,
-        id: model.id
-      }
-    };
   }
 }
 

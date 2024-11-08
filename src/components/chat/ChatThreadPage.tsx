@@ -7,7 +7,7 @@ import { documentStore } from '../../utils/documentStore';
 import {ProjectDrawer} from '../projects/ProjectDrawer';
 import ScrollToBottomButton from '../ui/ScrollToBottomButton';
 import { Model } from './ModelSelector';
-import { ChatHeader } from './ChatThreadHeader';
+import { ChatThreadHeader } from './ChatThreadHeader';
 import { MessageContainer } from './MessageContainer';
 import { ChatInputContainer } from './ChatInputContainer';
 import { useChat } from '../../hooks/useChat';
@@ -80,19 +80,9 @@ const ChatThreadPage: React.FC = () => {
     loadDocuments();
   }, []);
 
-  const handleAddDocument = async (file: File) => {
-    try {
-      // const newDocument = await documentStore.addDocument(file);
-      // setDocuments(prev => [newDocument, ...prev]);
-    } catch (error) {
-      console.error('Error adding document:', error);
-      throw error;
-    }
-  };
-
   return (
     <div className="h-screen bg-zinc-900 flex flex-col">
-      <ChatHeader 
+      <ChatThreadHeader 
         currentChatId={currentChatId} 
         onDeleteChat={deleteChat}
       />

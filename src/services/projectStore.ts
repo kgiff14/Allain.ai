@@ -7,7 +7,6 @@ import {
   } from '../types/project';
   
   const PROJECTS_STORAGE_KEY = 'stored_projects';
-  const ACTIVE_PROJECTS_KEY = 'active_projects';
   
   // Custom events for project changes
   const PROJECT_CHANGE_EVENT = 'project-changed';

@@ -55,6 +55,13 @@ class FileSystemService {
         };
       });
     }
+
+    async closeConnections(): Promise<void> {
+      if (this.db) {
+        this.db.close();
+        this.db = null;
+      }
+    }
   
     async writeFile(path: string, content: string): Promise<void> {
       await this.ensureDB();

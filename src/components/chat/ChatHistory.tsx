@@ -42,7 +42,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               <div className="flex-1 pr-8"> {/* Add padding-right to prevent text overlap with delete button */}
                 <h3 className="text-white font-bold">{chat.title}</h3>
                 <p className="text-zinc-400 text-sm">
-                  Last message {formatTimestamp(chat.lastMessageTime)} ago
+                  Last message {formatTimestamp(chat.lastMessageTime)}
                 </p>
               </div>
               <button

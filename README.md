@@ -1,69 +1,60 @@
-# Allain - Privacy-First Local RAG Chat Application
+# 🔍 Allain - Privacy-First Local RAG Chat Application
 
-Allain is a sophisticated local Retrieval-Augmented Generation (RAG) chat application that provides a Claude-like interface while ensuring complete privacy by processing all documents and embeddings locally. It leverages Anthropic's Claude API for language model capabilities while maintaining full privacy for your documents.
+> Your personal AI assistant with local document processing and knowledge management
 
-## Key Features
+## 📚 Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+  - [Privacy & Security](#privacy--security)
+  - [Document Processing](#document-processing)
+  - [Chat Interface](#chat-interface)
+  - [Memory System](#memory-system)
+  - [Project Management](#project-management)
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+- [Usage Guide](#usage-guide)
+- [Technical Architecture](#technical-architecture)
+- [Development](#development)
 
-- 🔒 **Complete Privacy**
-  - All document processing and embeddings remain local
-  - No document data ever leaves your machine
-  - Only chat messages are sent to Anthropic's API
-  - Local vector storage using IndexedDB
+## 🌟 Overview
 
-- 🤖 **Advanced Model Support**
-  - Claude 3.5 Sonnet - Best for complex tasks and analysis
-  - Claude 3.5 Haiku - Fast and efficient for simple tasks
-  - Configurable system messages and parameters
-  - Support for image input (Sonnet model)
+Allain is a sophisticated local Retrieval-Augmented Generation (RAG) chat application that combines the power of Claude's language models with complete privacy. It processes and stores all documents locally while providing a seamless chat experience enhanced with contextual knowledge from your documents.
 
-- 📑 **Document Management**
-  - Upload and manage multiple document types
-  - Built-in document viewer
-  - Real-time document processing
-  - Efficient document chunking and local vector search
-  - Support for code files with syntax highlighting
+## ✨ Features
 
-- 💬 **Chat Interface**
-  - Clean, Claude-like interface
-  - Real-time message streaming
-  - Rich Markdown support with syntax highlighting
-  - Support for image attachments and previews
-  - Chat history management
-  - Customizable model configurations
+### Privacy & Security
+- 🔐 **100% Local Processing**: All document handling and embeddings are generated on your machine
+- 🚫 **Zero Data Leakage**: No document data ever leaves your system
+- 💾 **Local Storage**: Uses IndexedDB for document and vector storage
+- 🤖 **API Security**: Only chat messages are sent to Anthropic's API
 
-- 🛠️ **Technical Features**
-  - Local embeddings using TensorFlow.js
-  - IndexedDB for document and vector storage
-  - Real-time streaming responses
-  - Configurable chunking strategies for different file types
-  - Project knowledge sidebar with document management
+### Document Processing
+- 📄 **Multiple File Types**: Support for code files, markdown, text, configurations
+- 🔍 **Smart Chunking**: Adaptive document chunking based on content type
+- 🧮 **Local Embeddings**: TensorFlow.js powered document embeddings
+- 📊 **Vector Search**: Efficient similarity search for relevant context
+- 🎨 **Syntax Highlighting**: Beautiful code rendering with support for multiple languages
 
-## Tech Stack
+### Chat Interface
+- 💻 **Modern UI**: Clean, responsive interface with dark mode
+- 🔄 **Real-time Streaming**: Instant response streaming
+- 📸 **Image Support**: Upload and view images in chat (with Claude 3 Sonnet)
+- 📝 **Rich Markdown**: Full markdown support with GFM
+- 💭 **Context Window**: Shows active documents and context sources
 
-- **Frontend**:
-  - React with TypeScript
-  - TailwindCSS for styling
-  - Lucide icons
-  - React Router for navigation
+### Memory System
+- 🧠 **Conversation Memory**: Automatic memory collection and retrieval
+- 📌 **Manual Memories**: Add important information manually
+- 🎯 **Memory Management**: View, edit, and delete stored memories
+- 🔄 **Context Integration**: Seamless memory integration in conversations
 
-- **Data Processing**:
-  - TensorFlow.js for local embeddings
-  - IndexedDB for persistent storage
-  - Local file system API for document management
+### Project Management
+- 📂 **Project Organization**: Group documents into projects
+- 🎚️ **Active/Inactive**: Toggle projects for RAG context
+- 📊 **Storage Management**: Monitor and manage storage usage
+- 🔄 **Batch Processing**: Efficient handling of multiple documents
 
-- **API Integration**:
-  - Anthropic Claude API for chat
-  - Express.js backend for API proxy
-  - Server-Sent Events for streaming
-
-## Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-- Anthropic API key
-- Modern web browser with IndexedDB support
-
-## Installation
+## 🚀 Installation
 
 1. Clone the repository:
 ```bash
@@ -87,70 +78,59 @@ cd ..
 ANTHROPIC_API_KEY=your_api_key_here
 ```
 
-## Development
+## 🎯 Getting Started
 
-Start the development server:
-
+1. Start the development server:
 ```bash
-# Start the backend
+# Start backend
 npm run server
 
-# In a new terminal, start the frontend
+# In a new terminal, start frontend
 npm run start
 ```
 
-The application will be available at:
+2. Open your browser and navigate to:
 - Frontend: http://localhost:3000
 - Backend: http://localhost:3001
 
-## Features in Detail
+3. Create your first project and upload some documents to get started!
 
-### Local Document Processing
-- Documents are processed entirely on your machine
-- TensorFlow.js handles embeddings generation
-- Efficient chunking strategies for different file types
-- Vector storage in IndexedDB for persistent retrieval
+## 📖 Usage Guide
 
-### Chat Interface
-- Clean, modern design similar to Claude
-- Real-time message streaming
-- Support for image uploads and previews
-- Markdown rendering with code syntax highlighting
-- Customizable model settings
+### Creating a Project
+1. Click the project icon in the top right
+2. Select "New Project"
+3. Enter project details and toggle RAG if you want it active
+4. Upload documents to your project
 
-### Document Management
-- Drag-and-drop file uploads
-- Built-in document viewer
-- Real-time document processing
-- Support for multiple file types
-- Document deletion and management
+### Starting a Chat
+1. Enter your message in the chat input
+2. Select your preferred model (Sonnet or Haiku)
+3. Add images if needed (Sonnet only)
+4. Send your message and receive contextually-aware responses
 
-### Privacy Features
-- No external API calls except for chat
-- All document processing happens locally
-- Embeddings generated and stored on your machine
-- No tracking or analytics
+### Managing Memories
+1. Click the brain icon in the top bar
+2. View automatically collected memories
+3. Add manual memories if desired
+4. Toggle memory collection and usage
 
-### Model Configuration
-- Adjustable parameters:
-  - Temperature
-  - Max tokens
-  - System messages
-- Model selection between Sonnet and Haiku
-- Persistent configuration storage
+### Using RAG Features
+1. Enable projects you want to use for context
+2. Ask questions about your documents
+3. View source references in responses
+4. Manage document context through the projects panel
 
-## Project Structure
+## 🔧 Technical Architecture
 
 ```
 allain/
 ├── src/
 │   ├── components/        # React components
-│   │   ├── chat/         # Chat-related components
-│   │   └── ui/          # Reusable UI components
 │   ├── services/         # Core services
-│   │   ├── enhancedChatService.ts
 │   │   ├── localEmbeddingsService.ts
-│   │   └── vectorStoreService.ts
+│   │   ├── improvedVectorStore.ts
+│   │   └── memoryService.ts
 │   ├── hooks/           # Custom React hooks
 │   ├── types/           # TypeScript definitions
 │   └── utils/           # Utility functions
@@ -158,21 +138,29 @@ allain/
 └── public/             # Static assets
 ```
 
-## Contributing
+### Key Technologies
+- 🧠 TensorFlow.js for local embeddings
+- 💾 IndexedDB for vector storage
+- ⚛️ React + TypeScript
+- 🎨 Tailwind CSS
+- 🔄 Server-Sent Events for streaming
+- 🤖 Claude API integration
+
+## 👩‍💻 Development
+
+### Building for Production
+```bash
+npm run build
+```
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- [Anthropic](https://www.anthropic.com/) for the Claude API
-- [TensorFlow.js](https://www.tensorflow.org/js) team
-- [Tailwind CSS](https://tailwindcss.com/) for styling
-- [React](https://reactjs.org/) team

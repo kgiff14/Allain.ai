@@ -48,6 +48,13 @@ class ImprovedVectorStore {
     });
   }
 
+  async closeConnections(): Promise<void> {
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
+  }
+
   // Batch vector addition with transaction management
   // Single vector addition
 async addVector(vector: Vector): Promise<void> {
@@ -130,6 +137,28 @@ async addVector(vector: Vector): Promise<void> {
       };
 
       processNextBatch();
+    });
+  }
+
+  async clearAllVectors(): Promise<void> {
+    await this.init();
+    if (!this.db) throw new Error('Database not initialized');
+  
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(this.STORE_NAME);
+      
+      const request = store.clear();
+      
+      request.onsuccess = () => {
+        console.log('Vector store contents cleared successfully');
+        resolve();
+      };
+      
+      request.onerror = () => {
+        console.error('Error clearing vector store:', request.error);
+        reject(request.error);
+      };
     });
   }
 

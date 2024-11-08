@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Settings2, FolderOpen, HardDrive, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Settings2, FolderOpen, HardDrive } from 'lucide-react';
 import ConfigDrawer from '../ui/ConfigDrawer';
 import { MemoryIndicator } from '../memories/MemoryIndicator';
 import { MemoriesModal } from '../memories/MemoriesModal';
@@ -10,14 +9,8 @@ import { projectStore } from '../../services/projectStore';
 import { personaStore } from '../../services/personaStore';
 import { Alert } from '../ui/alert';
 
-export const ChatThreadHeader: React.FC<{ 
-  currentChatId: string | null; 
-  onDeleteChat: () => void 
-}> = ({ 
-  currentChatId, 
-  onDeleteChat 
-}) => {
-  const navigate = useNavigate();
+// Common header interface to share between both components
+export const ChatInputHeader: React.FC = () => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
   const [isMemoriesModalOpen, setIsMemoriesModalOpen] = useState(false);
@@ -59,9 +52,10 @@ export const ChatThreadHeader: React.FC<{
 
   const handleAddMemory = (content: string) => {
     const memoryId = Date.now().toString();
+    const createdAt = new Date();
     personaStore.addMemory(persona.id, {
       content,
-      createdAt: new Date(),
+      createdAt,
       source: 'manual'
     });
     setNewMemoryId(memoryId);
@@ -80,7 +74,7 @@ export const ChatThreadHeader: React.FC<{
       <div className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-10">
         <div className="relative w-full">
           {/* System Icons - Absolute Positioned */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-7 z-2">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-7 z-20">
             <button
               onClick={() => setIsConfigOpen(true)}
               className="text-zinc-400 hover:text-white transition-colors duration-200"
@@ -97,17 +91,9 @@ export const ChatThreadHeader: React.FC<{
             </button>
           </div>
 
-          <div className="max-w-[980px] mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center">
-              <button
-                onClick={() => navigate('/')}
-                className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200"
-              >
-                <ArrowLeft size={20} />
-              </button>
-            </div>
-
-            <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3">
+          <div className="max-w-[1600px] mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-center">
+            {/* Center - Dynamic Title & RAG Status */}
+            <div className="flex items-center gap-3">
               <MemoryIndicator
                 persona={persona}
                 onOpenMemories={() => setIsMemoriesModalOpen(true)}
@@ -141,15 +127,6 @@ export const ChatThreadHeader: React.FC<{
                   )}
                 </div>
               )}
-            </div>
-            
-            <div className="flex-shrink-0">
-              <button
-                onClick={onDeleteChat}
-                className="text-red-400 hover:text-red-300 text-sm"
-              >
-                <Trash2 size={17}/>
-              </button>
             </div>
           </div>
         </div>
