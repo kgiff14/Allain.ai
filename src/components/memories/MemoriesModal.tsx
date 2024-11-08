@@ -92,7 +92,7 @@ export const MemoriesModal: React.FC<MemoriesModalProps> = ({
                 </div>
               </label>
               <div>
-                <div className="text-sm font-medium text-white">Collect Memories</div>
+                <div className="text-sm font-medium text-white">Collect Memories <span className="text-blue-400 text-xs font-medium">beta</span></div>
                 <div className="text-xs text-zinc-400">Auto-detect important info</div>
               </div>
             </div>
