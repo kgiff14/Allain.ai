@@ -1,9 +1,10 @@
 // components/projects/ProjectsList.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Edit2, Trash2, FolderOpen, FileText, ToggleLeft, ToggleRight, Files, Loader2 } from 'lucide-react';
 import { Project, ProjectDocument } from '../../types/project';
 import { formatTimestamp } from '../../utils/formatTimestamp';
 import ProjectDocumentsModal from './ProjectDocumentsModal';
+import { projectStore } from '../../services/projectStore';
 
 interface ProcessingFile {
   fileName: string;
@@ -36,6 +37,20 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [processingFiles, setProcessingFiles] = useState<Record<string, ProcessingFile>>({});
   const [error, setError] = useState<string | null>(null);
+  const [projects2, setProjects] = useState<Project[]>([]);
+
+  // Load projects when the component mounts
+  useEffect(() => {
+    const loadProjects = () => {
+      const allProjects = projectStore.getAllProjects();
+      setProjects(allProjects);
+    };
+
+    loadProjects();
+
+    // Optionally, listen for updates from projectStore and reload
+    projectStore.onUpdate(loadProjects);
+  }, []);
 
   const handleAddDocument = async (file: File) => {
     if (!selectedProject) return;

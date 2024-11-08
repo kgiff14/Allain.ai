@@ -5,6 +5,8 @@ import { ProjectDocument } from '../../types/project';
 import { formatTimestamp } from '../../utils/formatTimestamp';
 import { Alert, AlertDescription } from '../ui/alert';
 import { improvedDocumentService } from '../../services/improvedDocumentService';
+import { projectStore } from '../../services/projectStore';
+import DocumentViewer from '../ui/DocumentViewer';
 
 interface ProcessingFile {
   fileName: string;
@@ -37,6 +39,8 @@ interface FileProgress {
   }: ProjectDocumentsModalProps) => {
     const [error, setError] = useState<string | null>(null);
     const [processingFiles, setProcessingFiles] = useState<Record<string, FileProgress>>({});
+    const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
+    const [isViewerOpen, setIsViewerOpen] = useState(false);
   
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -71,6 +75,24 @@ interface FileProgress {
         } catch (err) {
           console.error('Error processing documents:', err);
           setError(err instanceof Error ? err.message : 'Failed to process documents');
+        }
+      };
+
+      const handleDeleteDocument = async (documentId: string, event?: React.MouseEvent) => {
+        if (event) {
+          event.stopPropagation();
+        }
+    
+        try {
+          await projectStore.removeDocumentFromProject(projectId, documentId);
+          
+          if (selectedDocument?.id === documentId) {
+            setSelectedDocument(null);
+            setIsViewerOpen(false);
+          }
+        } catch (err) {
+          console.error('Error deleting document:', err);
+          setError(err instanceof Error ? err.message : 'Failed to delete document');
         }
       };
   
@@ -159,36 +181,57 @@ interface FileProgress {
   
             {/* Document List */}
             <div className="space-y-2">
-              {documents.length === 0 ? (
+            {documents.length === 0 ? (
                 <div className="text-center text-zinc-400 py-8">
-                  <FileText className="mx-auto mb-4 opacity-50" size={32} />
-                  <p className="text-sm">No documents in this project yet.</p>
+                <FileText className="mx-auto mb-4 opacity-50" size={32} />
+                <p className="text-sm">
+                    No documents in this project yet. Add documents to begin.
+                </p>
                 </div>
-              ) : (
-                documents.map((doc) => (
-                  <div 
+            ) : (
+                <div className="space-y-2">
+                {documents.map((doc) => (
+                    <div 
                     key={doc.id}
-                    className="group bg-zinc-800/50 rounded-lg p-4 flex items-center justify-between"
-                  >
+                    className="group bg-zinc-800/50 rounded-lg p-3 flex items-center 
+                            justify-between hover:bg-zinc-800 transition-colors cursor-pointer"
+                    onClick={() => {
+                        setSelectedDocument(doc);
+                        setIsViewerOpen(true);
+                    }}
+                    >
                     <div className="flex items-center gap-3">
-                      <FileText className="text-zinc-400" size={16} />
-                      <div>
+                        <FileText className="text-zinc-400" size={16} />
+                        <div>
                         <div className="text-white">{doc.name}</div>
                         <div className="text-zinc-400 text-sm">
-                          {formatTimestamp(doc.uploadedAt)}
+                            {formatTimestamp(doc.uploadedAt)}
                         </div>
-                      </div>
+                        </div>
                     </div>
                     <button
-                      onClick={() => onDeleteDocument(doc.id)}
-                      className="opacity-0 group-hover:opacity-100 text-zinc-400 
-                               hover:text-red-400 transition-all duration-200"
+                        onClick={(e) => handleDeleteDocument(doc.id, e)}
+                        className="opacity-0 group-hover:opacity-100 text-zinc-400 
+                                hover:text-red-400 transition-all duration-200"
+                        aria-label="Delete document"
                     >
-                      <Trash2 size={16} />
+                        <Trash2 size={16} />
                     </button>
-                  </div>
-                ))
-              )}
+                    </div>
+                ))}
+                </div>
+            )}
+
+            {/* Document Viewer */}
+            <DocumentViewer
+                isOpen={isViewerOpen}
+                onClose={() => {
+                setIsViewerOpen(false);
+                setSelectedDocument(null);
+                }}
+                document={selectedDocument}
+                onDelete={handleDeleteDocument}
+            />
             </div>
           </div>
         </div>

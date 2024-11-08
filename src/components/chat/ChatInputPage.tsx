@@ -91,7 +91,6 @@ const ChatInputPage: React.FC = () => {
                   >
                     <FolderOpen size={14} />
                     <span>{activeProjects.length} active project{activeProjects.length !== 1 ? 's' : ''}</span>
-                    <Info size={14} />
                   </button>
 
                   {showProjectInfo && (

@@ -14,6 +14,7 @@ import {
   const PROJECT_UPDATE_EVENT = 'project-updated';
   
   class ProjectStoreService {
+    onUpdateCallback: (() => void) | undefined;
     private dispatchProjectChange() {
       window.dispatchEvent(new CustomEvent(PROJECT_CHANGE_EVENT));
     }
@@ -181,6 +182,10 @@ import {
         }
       }
       return null;
+    }
+
+    onUpdate(callback: () => void) {
+      this.onUpdateCallback = callback;
     }
   }
   

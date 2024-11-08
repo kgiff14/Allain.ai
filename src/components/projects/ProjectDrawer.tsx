@@ -1,14 +1,12 @@
 // components/projects/ProjectDrawer.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, FolderOpen } from 'lucide-react';
-import { Project, CreateProjectInput } from '../../types/project';
-import { ProjectsList } from './ProjectsList';
 import { ProjectModal } from './ProjectModal';
-import { projectStore } from '../../services/projectStore';
-import { documentStore } from '../../utils/documentStore';
-import { improvedDocumentService } from '../../services/improvedDocumentService';
+import ProjectManagement from './ProjectManagement';  // Import our new component
+import { CreateProjectInput } from '../../types/project';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { Alert, AlertDescription } from '../ui/alert';
+import { projectStore } from '../../services/projectStore';
 
 interface ProjectDrawerProps {
   isOpen: boolean;
@@ -21,12 +19,8 @@ export const ProjectDrawer: React.FC<ProjectDrawerProps> = ({
   onClose,
   onOpen,
 }) => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [activeProjects, setActiveProjects] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [error, setError] = useState<string | null>(null);
-  const [processingFiles, setProcessingFiles] = useState<string[]>([]);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     projectId: string | null;
@@ -37,120 +31,21 @@ export const ProjectDrawer: React.FC<ProjectDrawerProps> = ({
     projectName: ''
   });
 
-  // Load projects
-  useEffect(() => {
-    const loadProjects = () => {
-      const allProjects = projectStore.getAllProjects();
-      setProjects(allProjects);
-      setActiveProjects(allProjects.filter(p => p.isActive).map(p => p.id));
-    };
-
-    loadProjects();
-    window.addEventListener('project-changed', loadProjects);
-    window.addEventListener('project-updated', loadProjects);
-
-    return () => {
-      window.removeEventListener('project-changed', loadProjects);
-      window.removeEventListener('project-updated', loadProjects);
-    };
-  }, []);
-
   const handleCreateProject = () => {
-    setSelectedProject(undefined);
-    setIsModalOpen(true);
-  };
-
-  const handleEditProject = (project: Project) => {
-    setSelectedProject(project);
     setIsModalOpen(true);
   };
 
   const handleProjectSave = (projectData: CreateProjectInput) => {
     try {
-      if (selectedProject) {
-        projectStore.updateProject(selectedProject.id, {
-          name: projectData.name,
-          description: projectData.description,
-          isActive: projectData.isActive ?? false
-        });
-      } else {
-        projectStore.createProject({
-          name: projectData.name,
-          description: projectData.description,
-          isActive: projectData.isActive ?? false
-        });
-      }
+      projectStore.createProject({
+        name: projectData.name,
+        description: projectData.description,
+        isActive: projectData.isActive ?? false
+      });
       setError(null);
     } catch (err) {
       setError('Failed to save project');
       console.error('Error saving project:', err);
-    }
-  };
-
-  const handleProjectDelete = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
-    if (project) {
-      setDeleteConfirmation({
-        isOpen: true,
-        projectId: projectId,
-        projectName: project.name
-      });
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (deleteConfirmation.projectId) {
-      try {
-        await projectStore.deleteProject(deleteConfirmation.projectId);
-        setError(null);
-      } catch (err) {
-        setError('Failed to delete project');
-        console.error('Error deleting project:', err);
-      } finally {
-        setDeleteConfirmation({ isOpen: false, projectId: null, projectName: '' });
-      }
-    }
-  };
-
-  const handleProjectToggle = (projectId: string, active: boolean) => {
-    try {
-      projectStore.updateProject(projectId, { isActive: active });
-      setError(null);
-    } catch (err) {
-      setError('Failed to update project status');
-      console.error('Error toggling project:', err);
-    }
-  };
-
-  const handleAddDocument = async (projectId: string, file: File): Promise<void> => {
-    try {
-      setError(null);
-      setProcessingFiles(prev => [...prev, file.name]);
-
-      // Process document
-      const document = await improvedDocumentService.processDocument(file, projectId);
-
-      // Add document to project
-      await projectStore.addDocumentToProject(projectId, document);
-
-      setProcessingFiles(prev => prev.filter(name => name !== file.name));
-    } catch (err) {
-      setError('Failed to add document');
-      console.error('Error adding document:', err);
-      setProcessingFiles(prev => prev.filter(name => name !== file.name));
-      throw err;
-    }
-  };
-
-  const handleDeleteDocument = async (projectId: string, documentId: string): Promise<void> => {
-    try {
-      setError(null);
-      await documentStore.deleteDocument(documentId);
-      projectStore.removeDocumentFromProject(projectId, documentId);
-    } catch (err) {
-      setError('Failed to delete document');
-      console.error('Error deleting document:', err);
-      throw err;
     }
   };
 
@@ -187,6 +82,12 @@ export const ProjectDrawer: React.FC<ProjectDrawerProps> = ({
               <FolderOpen className="text-zinc-400" size={20} />
               <h2 className="text-lg font-semibold text-white">Projects</h2>
             </div>
+            <button
+              onClick={handleCreateProject}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors"
+            >
+              New Project
+            </button>
           </div>
 
           {/* Content */}
@@ -197,34 +98,28 @@ export const ProjectDrawer: React.FC<ProjectDrawerProps> = ({
               </Alert>
             )}
 
-            <ProjectsList
-              projects={projects}
-              activeProjects={activeProjects}
-              onProjectSelect={() => {}} // Implement if needed
-              onProjectEdit={handleEditProject}
-              onProjectDelete={handleProjectDelete}
-              onProjectToggle={handleProjectToggle}
-              onCreateProject={handleCreateProject}
-              onAddDocument={handleAddDocument}
-              onDeleteDocument={handleDeleteDocument}
-            />
+            <ProjectManagement />
           </div>
         </div>
       </div>
 
-      {/* Project Modal */}
+      {/* Project Creation Modal */}
       <ProjectModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleProjectSave}
-        initialProject={selectedProject}
       />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={deleteConfirmation.isOpen}
         onClose={() => setDeleteConfirmation(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={handleConfirmDelete}
+        onConfirm={() => {
+          if (deleteConfirmation.projectId) {
+            projectStore.deleteProject(deleteConfirmation.projectId);
+          }
+          setDeleteConfirmation({ isOpen: false, projectId: null, projectName: '' });
+        }}
         title="Delete Project"
         message={`Are you sure you want to delete the project "${deleteConfirmation.projectName}"? 
                 This will also remove all documents associated with this project. 
