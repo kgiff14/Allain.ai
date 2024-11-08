@@ -1,13 +1,13 @@
-import React from 'react';
-import { Trash2 } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Trash2, HardDrive } from 'lucide-react';
 import { Chat } from '../../types/types';
 import { formatTimestamp } from '../../utils/formatTimestamp';
-import { chatStore } from '../../utils/chatStore';
+import { formatBytes } from '../../utils/formatBytes';
 
 interface ChatHistoryProps {
   chats: Chat[];
   onSelectChat: (chatId: string) => void;
-  onChatDeleted?: () => void;  // Optional callback to refresh parent state
+  onChatDeleted?: () => void;
 }
 
 export const ChatHistory: React.FC<ChatHistoryProps> = ({ 
@@ -15,11 +15,22 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
   onSelectChat,
   onChatDeleted 
 }) => {
+  // Calculate memory usage for each chat
+  const chatsWithMemory = useMemo(() => {
+    return chats.map(chat => {
+      // Calculate the size of messages in bytes
+      const messagesSize = new Blob([JSON.stringify(chat)]).size;
+      return {
+        ...chat,
+        memorySize: messagesSize
+      };
+    });
+  }, [chats]);
+
   const handleDeleteChat = async (chatId: string, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent navigation when clicking delete
+    event.stopPropagation();
     try {
-      await chatStore.deleteChat(chatId);
-      // Notify parent component to refresh the chat list if callback exists
+      await window.fs.unlink(`chat-${chatId}.json`);
       if (onChatDeleted) {
         onChatDeleted();
       }
@@ -32,22 +43,30 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
     <div>
       <h2 className="text-lg font-semibold mb-4">Your chats</h2>
       <div className="space-y-4">
-        {chats.map((chat) => (
+        {chatsWithMemory.map((chat) => (
           <div
             key={chat.id}
-            className="group p-4 bg-zinc-800/50 rounded-lg shadow-md cursor-pointer hover:bg-zinc-800 transition-colors relative"
+            className="group p-4 bg-zinc-800/50 rounded-lg shadow-md cursor-pointer 
+                     hover:bg-zinc-800 transition-colors relative"
             onClick={() => onSelectChat(chat.id)}
           >
             <div className="flex justify-between items-start">
-              <div className="flex-1 pr-8"> {/* Add padding-right to prevent text overlap with delete button */}
+              <div className="flex-1 pr-8">
                 <h3 className="text-white font-bold">{chat.title}</h3>
-                <p className="text-zinc-400 text-sm">
-                  Last message {formatTimestamp(chat.lastMessageTime)}
-                </p>
+                <div className="flex items-center gap-4 mt-1">
+                  <p className="text-zinc-400 text-sm">
+                    Last message {formatTimestamp(chat.lastMessageTime)}
+                  </p>
+                  <div className="flex items-center gap-1.5 text-zinc-500 text-sm">
+                    <HardDrive size={14} />
+                    <span>{formatBytes(chat.memorySize)}</span>
+                  </div>
+                </div>
               </div>
               <button
                 onClick={(e) => handleDeleteChat(chat.id, e)}
-                className="opacity-0 group-hover:opacity-100 absolute right-4 top-7 text-zinc-400 hover:text-red-400 transition-all duration-200"
+                className="opacity-0 group-hover:opacity-100 absolute right-4 top-7 
+                         text-zinc-400 hover:text-red-400 transition-all duration-200"
                 aria-label="Delete chat"
               >
                 <Trash2 size={16} />

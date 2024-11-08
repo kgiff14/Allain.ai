@@ -69,6 +69,13 @@ export const MemoryManagementDrawer: React.FC<MemoryManagementDrawerProps> = ({
 
   return (
     <>
+    {/* Backdrop */}
+    {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          onClick={onClose}
+        />
+      )}
       {/* Rest of the component remains the same, just update the usage display sections */}
       <div
         className={`fixed left-0 top-0 w-96 h-full bg-zinc-900 border-r border-zinc-800 

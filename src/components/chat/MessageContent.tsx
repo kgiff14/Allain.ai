@@ -14,7 +14,7 @@ const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
   return (
     <>
       <div className={`flex ${isUser ? 'justify-end' : ''}`}>
-        <div className={`${isUser ? 'max-w-md px-4 py-2 rounded-xl' : 'max-w-4xl p-4'} group hover:bg-zinc-800/50 rounded-lg transition-colors`}>
+        <div className={`${isUser ? 'max-w-4xl px-4 py-2 rounded-xl' : 'max-w-4xl p-4'} group hover:bg-zinc-800/50 rounded-lg transition-colors`}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-zinc-300 font-semibold">
               {isUser ? 'You' : message.persona?.name}
