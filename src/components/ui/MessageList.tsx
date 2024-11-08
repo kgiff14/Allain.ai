@@ -1,6 +1,6 @@
 // components/MessageList.tsx
 import React from 'react';
-import { Message as MessageType } from '../../types';
+import { Message as MessageType } from '../../types/types';
 import { User } from 'lucide-react';
 
 interface MessageListProps {

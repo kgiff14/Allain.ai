@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { Alert, AlertDescription } from '../ui/alert';
-import { ProjectDocument } from '../../types';
+import { ProjectDocument } from '../../types/types';
 import { documentStore } from '../../utils/documentStore';
-import ProjectDrawer from '../ui/ProjectDrawer';
+import {ProjectDrawer} from '../projects/ProjectDrawer';
 import ScrollToBottomButton from '../ui/ScrollToBottomButton';
 import { Model } from './ModelSelector';
 import { ChatHeader } from './ChatThreadHeader';
@@ -82,8 +82,8 @@ const ChatThreadPage: React.FC = () => {
 
   const handleAddDocument = async (file: File) => {
     try {
-      const newDocument = await documentStore.addDocument(file);
-      setDocuments(prev => [newDocument, ...prev]);
+      // const newDocument = await documentStore.addDocument(file);
+      // setDocuments(prev => [newDocument, ...prev]);
     } catch (error) {
       console.error('Error adding document:', error);
       throw error;
@@ -130,8 +130,6 @@ const ChatThreadPage: React.FC = () => {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onOpen={() => setIsDrawerOpen(true)}
-        documents={documents}
-        onAddDocument={handleAddDocument}
       />
     </div>
   );

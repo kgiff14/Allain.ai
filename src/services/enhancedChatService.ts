@@ -1,5 +1,6 @@
-import { Message } from '../types';
+import { Message } from '../types/types';
 import { Model } from '../components/chat/ModelSelector';
+import { personaStore } from '../services/personaStore';
 
 export type MessageContent = {
   type: 'text';
@@ -32,22 +33,21 @@ class EnhancedChatService {
     this.decoder = new TextDecoder();
   }
 
-  private getModelConfig(): ModelConfig {
-    const defaultConfig = {
-      maxTokens: 4096,
-      temperature: 0.7,
-      systemMessage: "You are Claude, an AI assistant focused on being helpful, harmless, and honest."
+  private getModelConfig(model: Model): ModelConfig {
+    // Get the current persona configuration
+    const currentPersona = personaStore.getSelectedPersona();
+    
+    return {
+      maxTokens: currentPersona.maxTokens,
+      temperature: currentPersona.temperature,
+      systemMessage: currentPersona.systemMessage
     };
-
-    const savedConfig = localStorage.getItem('modelConfig');
-    return savedConfig ? JSON.parse(savedConfig) : defaultConfig;
   }
 
   private async* streamResponse(response: Response): AsyncGenerator<string, void, unknown> {
     if (!response.body) throw new Error('No response body available');
     
     const reader = response.body.getReader();
-    const decoder = new TextDecoder();
     let buffer = '';
     
     try {
@@ -55,7 +55,7 @@ class EnhancedChatService {
         const { done, value } = await reader.read();
         if (done) break;
         
-        buffer += decoder.decode(value, { stream: true });
+        buffer += this.decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
         
@@ -85,7 +85,6 @@ class EnhancedChatService {
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = reader.result as string;
-        // Extract the base64 data without the data URL prefix
         const base64Data = base64.split(',')[1];
         resolve(base64Data);
       };
@@ -94,7 +93,6 @@ class EnhancedChatService {
     });
   }
 
-  // Helper to prepare message content with images and RAG context
   private async prepareMessageContent(
     textContent: string, 
     ragContext: string, 
@@ -103,7 +101,6 @@ class EnhancedChatService {
   ): Promise<MessageContent[]> {
     const messageContent: MessageContent[] = [];
 
-    // Add images if supported and provided
     if (supportsImages && images && images.length > 0) {
       const imageContents = await Promise.all(
         images.map(async file => ({
@@ -118,7 +115,6 @@ class EnhancedChatService {
       messageContent.push(...imageContents);
     }
 
-    // Add text content with RAG context
     messageContent.push({
       type: 'text',
       text: `${ragContext ? ragContext + '\n\n' : ''}${textContent}`
@@ -135,7 +131,8 @@ class EnhancedChatService {
     ragContext?: string,
     images?: File[]
   ): Promise<Message> {
-    const config = this.getModelConfig();
+    const config = this.getModelConfig(model);
+    const currentPersona = personaStore.getSelectedPersona();
     
     // Format message history without system message
     const formattedMessages = messageHistory.map(msg => ({
@@ -143,7 +140,6 @@ class EnhancedChatService {
       content: msg.content
     }));
 
-    // Prepare message content with both images and RAG context
     const messageContent = await this.prepareMessageContent(
       content,
       ragContext || '',
@@ -189,11 +185,20 @@ class EnhancedChatService {
       throw error;
     }
 
+    // Create message with persona information
     return {
       id: messageId,
       content: fullContent,
       role: 'assistant',
-      timestamp: new Date()
+      timestamp: new Date(),
+      persona: {
+        id: currentPersona.id,
+        name: currentPersona.name
+      },
+      model: {
+        name: model.name,
+        id: model.id
+      }
     };
   }
 }

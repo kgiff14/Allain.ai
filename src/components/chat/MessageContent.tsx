@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Message } from '../../types';
+import { Message } from '../../types/types';
 import SafeMarkdown from './SafeMarkdown';
 import ImageModal from '../ui/ImageModal';
 
@@ -17,7 +17,7 @@ const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
         <div className={`${isUser ? 'max-w-md px-4 py-2 rounded-xl' : 'max-w-4xl p-4'} group hover:bg-zinc-800/50 rounded-lg transition-colors`}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-zinc-300 font-semibold">
-              {isUser ? 'You' : 'Allain'}
+              {isUser ? 'You' : message.persona?.name}
             </span>
             {!isUser && message.model && (
               <span className="text-zinc-500 text-sm italic">

@@ -145,7 +145,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             className="flex-1 bg-transparent text-white placeholder-zinc-500 p-2 pr-12 focus:outline-none focus:ring-0 resize-none min-h-[60px] max-h-[200px]"
-            placeholder={disabled ? "Please wait..." : "Message Allain..."}
+            placeholder={disabled ? "Please wait..." : "Still waiting for you to start typing..."}
             rows={1}
             disabled={disabled}
           />

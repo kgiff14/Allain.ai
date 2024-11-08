@@ -1,14 +1,13 @@
-// components/LoadingMessage.tsx
 import React from 'react';
+import { usePersona } from '../../hooks/usePersona';
 
 export const LoadingMessage: React.FC = () => {
+  const persona = usePersona();
+  
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-3 mb-2">
-        <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm">
-          A
-        </div>
-        <span className="text-zinc-400">Allain</span>
+        <span className="text-zinc-400">{persona.name}</span>
       </div>
       <div className="pl-9">
         <div className="flex space-x-2">

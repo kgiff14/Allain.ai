@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, Settings2, Info } from 'lucide-react';
+import { X, Settings2 } from 'lucide-react';
+import { PersonaModal } from './PersonaModal';
+import { PersonaSelector } from './PersonaSelector';
+import ConfirmDialog from './ConfirmDialog';
+import { personaStore } from '../../services/personaStore';
 
-interface ModelConfig {
+interface Persona {
+  id: string;
+  name: string;
   maxTokens: number;
   temperature: number;
   systemMessage: string;
+  isDefault?: boolean;
 }
 
 interface ConfigDrawerProps {
@@ -12,32 +19,78 @@ interface ConfigDrawerProps {
   onClose: () => void;
 }
 
-const DEFAULT_CONFIG: ModelConfig = {
-  maxTokens: 4096,
-  temperature: 0.7,
-  systemMessage: "You are Allain, an AI assistant that is an expert in software development. You provide complete and reviewed feedback. You remain objective to the information you have and what the best practices are for a given scenario. If you don't know an answer, please express that you dont know."
-};
-
 const ConfigDrawer: React.FC<ConfigDrawerProps> = ({ isOpen, onClose }) => {
-  const [config, setConfig] = useState<ModelConfig>(() => {
-    const savedConfig = localStorage.getItem('modelConfig');
-    return savedConfig ? JSON.parse(savedConfig) : DEFAULT_CONFIG;
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPersona, setEditingPersona] = useState<Persona | undefined>(undefined);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    personaId: string | null;
+    personaName: string;
+  }>({
+    isOpen: false,
+    personaId: null,
+    personaName: ''
   });
 
+  // Load personas and selected persona
   useEffect(() => {
-    localStorage.setItem('modelConfig', JSON.stringify(config));
-  }, [config]);
+    setPersonas(personaStore.getAllPersonas());
+    setSelectedPersonaId(personaStore.getSelectedPersonaId());
+  }, [isOpen]);
 
-  const handleChange = (key: keyof ModelConfig, value: string | number) => {
-    setConfig(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const handleCreatePersona = () => {
+    setEditingPersona(undefined);
+    setIsModalOpen(true);
   };
 
-  // Reset to defaults
-  const handleReset = () => {
-    setConfig(DEFAULT_CONFIG);
+  const handleEditPersona = (persona: Persona) => {
+    if (persona.isDefault) {
+      return; // Prevent editing default persona
+    }
+    setEditingPersona(persona);
+    setIsModalOpen(true);
+  };
+
+  const handleSavePersona = (persona: Persona) => {
+    if (editingPersona?.isDefault) {
+      return; // Extra protection against editing default
+    }
+
+    if (editingPersona) {
+      personaStore.updatePersona(persona);
+    } else {
+      personaStore.addPersona({ ...persona, isDefault: false });
+    }
+    setPersonas(personaStore.getAllPersonas());
+  };
+
+  const handleDeletePersona = (personaId: string) => {
+    if (personaStore.isDefaultPersona(personaId)) {
+      return; // Prevent deleting default persona
+    }
+    
+    const persona = personas.find(p => p.id === personaId);
+    if (persona) {
+      setDeleteConfirmation({
+        isOpen: true,
+        personaId: personaId,
+        personaName: persona.name
+      });
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmation.personaId) {
+      personaStore.deletePersona(deleteConfirmation.personaId);
+      setPersonas(personaStore.getAllPersonas());
+    }
+  };
+
+  const handleSelectPersona = (persona: Persona) => {
+    personaStore.setSelectedPersona(persona.id);
+    setSelectedPersonaId(persona.id);
   };
 
   return (
@@ -61,7 +114,7 @@ const ConfigDrawer: React.FC<ConfigDrawerProps> = ({ isOpen, onClose }) => {
           <div className="flex items-center justify-between p-6 border-b border-zinc-800">
             <div className="flex items-center gap-2">
               <Settings2 className="text-zinc-400" size={20} />
-              <h2 className="text-lg font-semibold text-white">Model Configuration</h2>
+              <h2 className="text-lg font-semibold text-white">Configuration</h2>
             </div>
             <button
               onClick={onClose}
@@ -73,82 +126,57 @@ const ConfigDrawer: React.FC<ConfigDrawerProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Content */}
-          <div className="p-6 space-y-6">
-            {/* Max Tokens */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-zinc-300">
-                Max Tokens
-                <div className="group relative">
-                  <Info size={14} className="text-zinc-500" />
-                  <div className="absolute left-6 bottom-0 w-48 p-2 bg-zinc-800 rounded text-xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity">
-                    Maximum number of tokens the model can generate in response
-                  </div>
-                </div>
-              </label>
-              <input
-                type="number"
-                value={config.maxTokens}
-                onChange={(e) => handleChange('maxTokens', parseInt(e.target.value))}
-                min="1"
-                max="8,192"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
-              />
-            </div>
+          <div className="p-6 space-y-8">
+            {/* Personas Section */}
+            <PersonaSelector
+              personas={personas}
+              selectedPersonaId={selectedPersonaId}
+              onPersonaSelect={handleSelectPersona}
+              onCreatePersona={handleCreatePersona}
+              onEditPersona={handleEditPersona}
+              onDeletePersona={handleDeletePersona}
+            />
 
-            {/* Temperature */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-zinc-300">
-                Temperature
-                <div className="group relative">
-                  <Info size={14} className="text-zinc-500" />
-                  <div className="absolute left-6 p-2 bottom-0 w-48 p-1 bg-zinc-800 rounded text-xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity">
-                    Controls randomness in responses (0 = deterministic, 1 = creative)
+            {/* Selected Persona Info */}
+            {selectedPersonaId && (
+              <div className="space-y-4 pt-4 border-t border-zinc-800">
+                <h3 className="text-lg font-medium text-white">Current Settings</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Max Tokens:</span>
+                    <span className="text-white">
+                      {personas.find(p => p.id === selectedPersonaId)?.maxTokens}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">Temperature:</span>
+                    <span className="text-white">
+                      {personas.find(p => p.id === selectedPersonaId)?.temperature}
+                    </span>
                   </div>
                 </div>
-              </label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="range"
-                  value={config.temperature}
-                  onChange={(e) => handleChange('temperature', parseFloat(e.target.value))}
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  className="flex-1"
-                />
-                <span className="text-white w-12 text-center">{config.temperature}</span>
               </div>
-            </div>
-
-            {/* System Message */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-zinc-300">
-                System Message
-                <div className="group relative">
-                  <Info size={14} className="text-zinc-500" />
-                  <div className="absolute left-6 bottom-0 w-48 p-2 bg-zinc-800 rounded text-xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity">
-                    Initial instructions given to the model
-                  </div>
-                </div>
-              </label>
-              <textarea
-                value={config.systemMessage}
-                onChange={(e) => handleChange('systemMessage', e.target.value)}
-                rows={16}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
-              />
-            </div>
-
-            {/* Reset Button */}
-            <button
-              onClick={handleReset}
-              className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-2 rounded transition-colors"
-            >
-              Reset to Defaults
-            </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Create/Edit Persona Modal */}
+      <PersonaModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSavePersona}
+        initialPersona={editingPersona}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmDelete}
+        title="Delete Persona"
+        message={`Are you sure you want to delete the persona "${deleteConfirmation.personaName}"? This action cannot be undone.`}
+      />
     </>
   );
 };

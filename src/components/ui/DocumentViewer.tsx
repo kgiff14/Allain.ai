@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, FileText, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
-import { ProjectDocument } from '../../types';
+import { ProjectDocument } from '../../types/types';
 
 interface DocumentViewerProps {
   isOpen: boolean;

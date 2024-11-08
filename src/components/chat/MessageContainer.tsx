@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Message } from '../../types';
+import { Message } from '../../types/types';
 import MessageContent from './MessageContent';
 import StreamingMessage from './StreamingMessage';
 import { LoadingMessage } from './LoadingMessage';

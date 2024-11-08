@@ -1,91 +1,70 @@
 // utils/documentStore.ts
-import { ProjectDocument } from '../types';
-import { embeddingsService } from '../services/localEmbeddingsService';
-import { vectorStore } from '../services/vectorStoreService';
+import { ProjectDocument } from '../types/project';
+import { projectStore } from '../services/projectStore';
+import { improvedDocumentService } from '../services/improvedDocumentService';
 
-const DOCUMENTS_STORAGE_KEY = 'stored_documents';
+class DocumentStoreService {
+  // Get all documents across all projects
+  getAllDocuments(): ProjectDocument[] {
+    return projectStore.getAllProjects()
+      .flatMap(project => project.documents);
+  }
 
-interface StoredDocument extends ProjectDocument {
-  content?: string;
-}
-
-export const documentStore = {
-  // Add a new document
-  addDocument: async (file: File): Promise<ProjectDocument> => {
-    const documents = documentStore.getAllDocuments();
-    
-    // Read file content
-    const content = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsText(file);
-    });
-
-    const newDocument: StoredDocument = {
-      id: Date.now().toString(),
-      name: file.name,
-      type: file.type,
-      uploadedAt: new Date(),
-      content
-    };
-
-    // Store content using fs API
-    await window.fs.writeFile(file.name, content);
-
-    // Process document for embeddings
-    await embeddingsService.processDocument(newDocument.id, file.name, content);
-
-    // Store metadata in localStorage (without content)
-    const { content: _, ...documentMetadata } = newDocument;
-    localStorage.setItem(
-      DOCUMENTS_STORAGE_KEY, 
-      JSON.stringify([documentMetadata, ...documents])
-    );
-
-    return documentMetadata;
-  },
-
-  // Get all documents
-  getAllDocuments: (): ProjectDocument[] => {
-    const stored = localStorage.getItem(DOCUMENTS_STORAGE_KEY);
-    if (!stored) return [];
-    
-    const documents: ProjectDocument[] = JSON.parse(stored);
-    return documents.map(doc => ({
-      ...doc,
-      uploadedAt: new Date(doc.uploadedAt)
-    }));
-  },
-
-  // Get a specific document
-  getDocument: (documentId: string): ProjectDocument | null => {
-    const documents = documentStore.getAllDocuments();
-    const document = documents.find(doc => doc.id === documentId);
-    return document ? {
-      ...document,
-      uploadedAt: new Date(document.uploadedAt)
-    } : null;
-  },
-
-  // Delete a document
-  deleteDocument: async (documentId: string): Promise<void> => {
-    const documents = documentStore.getAllDocuments();
-    const document = documents.find(doc => doc.id === documentId);
-    
-    if (document) {
-      // Remove file content
-      try {
-        await window.fs.unlink(document.name);
-        // Remove vectors from vector store
-        await vectorStore.deleteVectorsByDocumentId(documentId);
-      } catch (error) {
-        console.error('Error deleting document content:', error);
-      }
+  // Add a new document to a specific project
+  async addDocument(file: File, projectId: string): Promise<ProjectDocument> {
+    const project = projectStore.getProject(projectId);
+    if (!project) {
+      throw new Error('Project not found');
     }
 
-    // Update localStorage
-    const updatedDocuments = documents.filter(doc => doc.id !== documentId);
-    localStorage.setItem(DOCUMENTS_STORAGE_KEY, JSON.stringify(updatedDocuments));
+    try {
+      // Process document with the new service
+      const document = await improvedDocumentService.processDocument(file, projectId);
+      
+      // Add document to project
+      projectStore.addDocumentToProject(projectId, document);
+
+      return document;
+    } catch (error) {
+      console.error('Error adding document:', error);
+      throw error;
+    }
   }
-};
+
+  // Delete a document from its project
+  async deleteDocument(documentId: string): Promise<void> {
+    try {
+      await improvedDocumentService.deleteDocument(documentId);
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      throw error;
+    }
+  }
+
+  // Get a specific document's content
+  async getDocumentContent(documentId: string): Promise<string | null> {
+    const documentInfo = projectStore.findDocumentInProjects(documentId);
+    
+    if (!documentInfo) {
+      return null;
+    }
+
+    try {
+      const content = await window.fs.readFile(documentInfo.document.name, { encoding: 'utf8' });
+      return content;
+    } catch (error) {
+      console.error('Error reading document content:', error);
+      return null;
+    }
+  }
+
+  // Check if a document exists in any project
+  async documentExists(fileName: string): Promise<boolean> {
+    const allProjects = projectStore.getAllProjects();
+    return allProjects.some(project => 
+      project.documents.some(doc => doc.name === fileName)
+    );
+  }
+}
+
+export const documentStore = new DocumentStoreService();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
-import { Chat } from '../../types';
+import { Chat } from '../../types/types';
 import { formatTimestamp } from '../../utils/formatTimestamp';
 import { chatStore } from '../../utils/chatStore';
 
