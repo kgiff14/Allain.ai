@@ -6,6 +6,7 @@ import { Project, ProjectDocument, CreateProjectInput } from '../../types/projec
 import { projectStore } from '../../services/projectStore';
 import { improvedDocumentService } from '../../services/improvedDocumentService';
 import { v4 as uuidv4 } from 'uuid';
+import { formatTimestamp } from '../../utils/formatTimestamp';
 
 const ProjectManagement = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -174,68 +175,84 @@ const ProjectManagement = () => {
             className="bg-zinc-800/50 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-colors"
           >
             {/* Project Header */}
-            <div className="p-4 relative">
-            {/* RAG Status Pill - Positioned absolutely in top right */}
-            {project.isActive && (
+            <div className="py-4 px-4 relative">
+                {/* RAG Status Pill - Positioned absolutely in top right */}
+                {project.isActive && (
                 <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                <span className="text-blue-400 text-xs font-medium">Active</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    <span className="text-blue-400 text-xs font-medium">RAG Enabled</span>
                 </div>
-            )}
-
-            <div className="flex items-center justify-between">
-                <div className="flex-1">
-                <h4 className="text-white font-medium">{project.name}</h4>
-                {project.description && (
-                    <p className="text-zinc-400 text-sm mt-1">{project.description}</p>
                 )}
+
+                <div className="flex items-center justify-between">
+                <div className="flex-1">
+                    <h4 className="text-white font-medium">{project.name}</h4>
+                    {project.description && (
+                    <p className="text-zinc-400 text-sm mt-1">{project.description}</p>
+                    )}
                 </div>
                 
                 {/* Project Actions */}
                 <div className="flex items-center gap-2 ml-4">
-                <button
+                    <button
                     onClick={() => handleProjectToggle(project.id, !project.isActive)}
                     className={`p-2 rounded-lg transition-colors ${
-                    project.isActive ? 'text-blue-400 hover:text-blue-300' : 'text-zinc-400 hover:text-zinc-300'
+                        project.isActive ? 'text-blue-400 hover:text-blue-300' : 'text-zinc-400 hover:text-zinc-300'
                     }`}
                     title={project.isActive ? 'Disable RAG' : 'Enable RAG'}
-                >
+                    >
                     {project.isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-                </button>
-                
-                <button
+                    </button>
+                    
+                    <button
                     onClick={() => toggleProjectExpansion(project.id)}
                     className="p-2 text-zinc-400 hover:text-zinc-300 transition-colors rounded-lg"
                     title="Manage files"
-                >
+                    >
                     <Files size={20} />
-                </button>
-                
-                <button
+                    </button>
+                    
+                    <button
                     onClick={() => {
-                    setEditingProject(project);
-                    setIsModalOpen(true);
+                        setEditingProject(project);
+                        setIsModalOpen(true);
                     }}
                     className="p-2 text-zinc-400 hover:text-zinc-300 transition-colors rounded-lg"
                     title="Edit project"
-                >
+                    >
                     <Edit2 size={20} />
-                </button>
-                
-                <button
+                    </button>
+                    
+                    <button
                     onClick={() => handleDeleteProject(project.id)}
                     className="p-2 text-zinc-400 hover:text-red-400 transition-colors rounded-lg"
                     title="Delete project"
-                >
+                    >
                     <Trash2 size={20} />
-                </button>
+                    </button>
                 </div>
-            </div>
+                </div>
+
+                {/* Project Metadata Footer */}
+                <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500 italic">
+                <div className="flex items-center gap-1">
+                    <FileText size={12} />
+                    <span>{project.documents.length} file{project.documents.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div>
+                    Created {formatTimestamp(project.createdAt)}
+                </div>
+                {project.updatedAt.getTime() !== project.createdAt.getTime() && (
+                    <div>
+                    Last updated {formatTimestamp(project.updatedAt)}
+                    </div>
+                )}
+                </div>
             </div>
 
             {/* Expandable Files Section */}
             {expandedProjects.has(project.id) && (
-              <div className="border-t border-zinc-700">
+                <div className="border-t border-zinc-700">
                 <div className="p-4 space-y-4">
                   {/* File Upload */}
                   <div className="relative">
