@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { debounce } from 'lodash';
 import SafeMarkdown from './SafeMarkdown';
 import { Model } from './ModelSelector';
+import { usePersona } from '../../hooks/usePersona';
 
 interface StreamingMessageProps {
   content: string;
@@ -13,6 +14,7 @@ const StreamingMessage: React.FC<StreamingMessageProps> = ({ content, isComplete
   const [displayContent, setDisplayContent] = useState('');
   const contentRef = useRef('');
   const batchTimeout = useRef<NodeJS.Timeout>();
+  const persona = usePersona(); // Current persona for streaming message
 
   // Batch updates using useRef and setTimeout
   const updateContent = useCallback(() => {
@@ -25,7 +27,7 @@ const StreamingMessage: React.FC<StreamingMessageProps> = ({ content, isComplete
   const debouncedUpdate = useCallback(
     debounce(() => {
       updateContent();
-    }, 50), // Adjust this value to balance between smoothness and performance
+    }, 50),
     []
   );
 
@@ -33,17 +35,14 @@ const StreamingMessage: React.FC<StreamingMessageProps> = ({ content, isComplete
     contentRef.current = content;
     
     if (!isComplete) {
-      // Clear any existing timeout
       if (batchTimeout.current) {
         clearTimeout(batchTimeout.current);
       }
       
-      // Schedule a new update
       batchTimeout.current = setTimeout(() => {
         debouncedUpdate();
-      }, 16); // Roughly one frame at 60fps
+      }, 16);
     } else {
-      // Immediate update when stream is complete
       updateContent();
     }
     
@@ -58,10 +57,7 @@ const StreamingMessage: React.FC<StreamingMessageProps> = ({ content, isComplete
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 flex items-center justify-center text-white text-sm">
-          A
-        </div>
-        <span className="text-zinc-400">Allain</span>
+        <span className="text-zinc-400">{persona.name}</span>
         {model && (
           <span className="text-zinc-500 text-sm italic">
             using {model.name}

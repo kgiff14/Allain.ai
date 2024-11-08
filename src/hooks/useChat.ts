@@ -1,10 +1,11 @@
+// hooks/useChat.ts
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Message } from '../types';
+import { Message } from '../types/types';
 import { chatStore } from '../utils/chatStore';
 import { enhancedChatService } from '../services/enhancedChatService';
-import { embeddingsService } from '../services/localEmbeddingsService';
 import { Model } from '../components/chat/ModelSelector';
+import { useRAGContext } from './useRAGContext';
 
 // Helper to create a persistent blob URL from a File
 const createPersistentBlobUrl = async (file: File): Promise<string> => {
@@ -21,6 +22,7 @@ export const useChat = (chatId?: string) => {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   
   const navigate = useNavigate();
+  const { getRelevantContext, error: ragError } = useRAGContext();
 
   useEffect(() => {
     if (chatId) {
@@ -44,13 +46,10 @@ export const useChat = (chatId?: string) => {
     try {
       setIsLoading(true);
       setStreamingContent('');
+      setError(null);
   
       // Get relevant context from RAG
-      const relevantChunks = await embeddingsService.findRelevantChunks(content, 5);
-      const ragContext = relevantChunks
-        .map(entry => entry.metadata.chunk)
-        .filter(chunk => chunk)
-        .join('\n\n');
+      const ragContext = await getRelevantContext(content);
         
       const assistantMessage = await enhancedChatService.streamMessage(
         content,
@@ -156,7 +155,7 @@ export const useChat = (chatId?: string) => {
   return {
     messages,
     isLoading,
-    error,
+    error: error || ragError,
     streamingContent,
     currentChatId,
     sendMessage,

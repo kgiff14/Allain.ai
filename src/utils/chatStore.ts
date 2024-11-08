@@ -1,5 +1,5 @@
 // utils/chatStore.ts
-import { Message, Chat } from '../types';
+import { Message, Chat } from '../types/types';
 
 interface StoredChat extends Chat {
   messages: Message[];

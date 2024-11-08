@@ -1,4 +1,4 @@
-import { Message } from '../types';
+import { Message } from '../types/types';
 import { Model } from '../components/chat/ModelSelector';
 
 export type MessageContent = {
