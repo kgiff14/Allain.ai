@@ -10,20 +10,22 @@ interface StreamingMessageProps {
   model?: Model;
 }
 
-const StreamingMessage: React.FC<StreamingMessageProps> = ({ content, isComplete, model }) => {
+const StreamingMessage: React.FC<StreamingMessageProps> = ({ 
+  content, 
+  isComplete, 
+  model 
+}) => {
   const [displayContent, setDisplayContent] = useState('');
-  const contentRef = useRef('');
+  const contentRef = useRef(content);
   const batchTimeout = useRef<NodeJS.Timeout>();
-  const persona = usePersona(); // Current persona for streaming message
+  const persona = usePersona();
 
-  // Batch updates using useRef and setTimeout
   const updateContent = useCallback(() => {
     if (contentRef.current !== displayContent) {
       setDisplayContent(contentRef.current);
     }
   }, [displayContent]);
 
-  // Debounced update function
   const debouncedUpdate = useCallback(
     debounce(() => {
       updateContent();
@@ -57,6 +59,7 @@ const StreamingMessage: React.FC<StreamingMessageProps> = ({ content, isComplete
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-2 mb-2">
+        {/* Always show persona name */}
         <span className="text-zinc-400">{persona.name}</span>
         {model && (
           <span className="text-zinc-500 text-sm italic">

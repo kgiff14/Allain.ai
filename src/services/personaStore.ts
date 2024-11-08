@@ -6,10 +6,10 @@ const SELECTED_PERSONA_KEY = 'selected_persona';
 // Default persona
 const DEFAULT_PERSONA: Persona = {
   id: 'default',
-  name: 'Default',
-  maxTokens: 4096,
-  temperature: 0.7,
-  systemMessage: "You are an AI assistant focused on being helpful, harmless, and honest.",
+  name: 'Allain',
+  maxTokens: 8192,
+  temperature: 0.5,
+  systemMessage: "You are an AI assistant named Allain, focused on being helpful, harmless, and honest.",
   isDefault: true
 };
   
