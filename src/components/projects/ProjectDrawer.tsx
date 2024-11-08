@@ -6,7 +6,7 @@ import { ProjectsList } from './ProjectsList';
 import { ProjectModal } from './ProjectModal';
 import { projectStore } from '../../services/projectStore';
 import { documentStore } from '../../utils/documentStore';
-import { documentProcessingService } from '../../services/enhancedDocumentParsingService';
+import { improvedDocumentService } from '../../services/improvedDocumentService';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { Alert, AlertDescription } from '../ui/alert';
 
@@ -128,11 +128,7 @@ export const ProjectDrawer: React.FC<ProjectDrawerProps> = ({
       setProcessingFiles(prev => [...prev, file.name]);
 
       // Process document
-      const document = await documentProcessingService.processDocument(file, projectId, {
-        onProgress: (progress) => {
-          console.log(`Processing ${file.name}: ${progress}%`);
-        }
-      });
+      const document = await improvedDocumentService.processDocument(file, projectId);
 
       // Add document to project
       await projectStore.addDocumentToProject(projectId, document);

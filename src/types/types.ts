@@ -46,6 +46,23 @@ export interface Persona {
   isDefault?: boolean;  // New property to mark default persona
 }
 
+export interface Vector {
+  id: string;
+  vector: number[];
+  metadata: VectorMetadata;
+  similarity?: number;
+}
+
+export interface VectorMetadata {
+  documentId: string;
+  projectId: string;
+  fileName: string;
+  contentType: 'text' | 'code';
+  startLine?: number;
+  endLine?: number;
+  chunkIndex?: number;
+}
+
 declare global {
   interface Window {
     fs: {

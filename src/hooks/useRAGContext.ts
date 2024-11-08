@@ -1,14 +1,20 @@
 // hooks/useRAGContext.ts
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { projectStore } from '../services/projectStore';
-import { documentStore } from '../utils/documentStore';
 import { embeddingsService } from '../services/localEmbeddingsService';
-import { vectorStore } from '../services/vectorStoreService';
+import { improvedVectorStore } from '../services/improvedVectorStore';
+import { Vector } from '../types/types';
+
+interface DocumentContext {
+  content: string;
+  fileName: string;
+  similarity: number;
+}
 
 export const useRAGContext = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    
   const getRelevantContext = async (query: string): Promise<string> => {
     try {
       setIsLoading(true);
@@ -19,6 +25,8 @@ export const useRAGContext = () => {
         .filter(project => project.isActive)
         .map(project => project.id);
 
+        
+
       if (activeProjects.length === 0) {
         return '';
       }
@@ -27,18 +35,19 @@ export const useRAGContext = () => {
       const queryEmbedding = await embeddingsService.generateQueryEmbedding(query);
 
       // Search for relevant vectors
-      const results = await vectorStore.findSimilarVectors(queryEmbedding, {
-        limit: 5,
-        filter: {
-          projectId: { $in: activeProjects }
-        }
-      });
+      const results: Vector[] = await improvedVectorStore.findSimilarVectors(
+        queryEmbedding,
+        activeProjects,
+        5
+      );
 
       // Get document contents
       const contexts = await Promise.all(
-        results.map(async result => {
+        results.map(async (result): Promise<DocumentContext | null> => {
           try {
-            const content = await window.fs.readFile(result.metadata.fileName, { encoding: 'utf8' });
+            const content = await window.fs.readFile(result.metadata.fileName, { 
+              encoding: 'utf8' 
+            });
             return {
               content,
               fileName: result.metadata.fileName,
@@ -52,7 +61,9 @@ export const useRAGContext = () => {
       );
 
       // Filter out failed loads and format context
-      const validContexts = contexts.filter((ctx): ctx is NonNullable<typeof ctx> => ctx !== null);
+      const validContexts = contexts.filter((ctx): ctx is DocumentContext => 
+        ctx !== null
+      );
 
       if (validContexts.length === 0) {
         return '';
@@ -70,7 +81,7 @@ export const useRAGContext = () => {
 
     } catch (error) {
       console.error('Error getting RAG context:', error);
-      setError('Failed to retrieve context from documents');
+      setError(error instanceof Error ? error.message : 'Failed to retrieve context from documents');
       return '';
     } finally {
       setIsLoading(false);

@@ -22,7 +22,7 @@ export const useChat = (chatId?: string) => {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   
   const navigate = useNavigate();
-  const { getRelevantContext, error: ragError } = useRAGContext();
+  const { getRelevantContext } = useRAGContext();
 
   useEffect(() => {
     if (chatId) {
@@ -155,7 +155,7 @@ export const useChat = (chatId?: string) => {
   return {
     messages,
     isLoading,
-    error: error || ragError,
+    error: error,
     streamingContent,
     currentChatId,
     sendMessage,

@@ -4,7 +4,7 @@ import { X, Upload, FileText, Loader2, Trash2 } from 'lucide-react';
 import { ProjectDocument } from '../../types/project';
 import { formatTimestamp } from '../../utils/formatTimestamp';
 import { Alert, AlertDescription } from '../ui/alert';
-import { getFileExtension } from '../../utils/fileTypes';
+import { improvedDocumentService } from '../../services/improvedDocumentService';
 
 interface ProcessingFile {
   fileName: string;
@@ -39,43 +39,40 @@ interface FileProgress {
     const [processingFiles, setProcessingFiles] = useState<Record<string, FileProgress>>({});
   
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
-  
-      setError(null);
-  
-      try {
-        // Process files sequentially
-        for (const file of Array.from(files)) {
-          // Initialize progress for this file
-          setProcessingFiles(prev => ({
-            ...prev,
-            [file.name]: { fileName: file.name, progress: 0 }
-          }));
-  
-          // Process file with progress callback
-          await onAddDocument(file, (progress: number) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+      
+        setError(null);
+      
+        try {
+          for (const file of Array.from(files)) {
             setProcessingFiles(prev => ({
               ...prev,
-              [file.name]: { fileName: file.name, progress }
+              [file.name]: { fileName: file.name, progress: 0 }
             }));
-          });
-  
-          // Remove file from processing state when complete
-          setProcessingFiles(prev => {
-            const { [file.name]: _, ...rest } = prev;
-            return rest;
-          });
+      
+            await improvedDocumentService.processDocument(
+              file,
+              projectId,
+              (progress) => {
+                setProcessingFiles(prev => ({
+                  ...prev,
+                  [file.name]: { fileName: file.name, progress }
+                }));
+              }
+            );
+      
+            // Remove from processing state when complete
+            setProcessingFiles(prev => {
+              const { [file.name]: _, ...rest } = prev;
+              return rest;
+            });
+          }
+        } catch (err) {
+          console.error('Error processing documents:', err);
+          setError(err instanceof Error ? err.message : 'Failed to process documents');
         }
-      } catch (err) {
-        console.error('Error processing documents:', err);
-        setError(err instanceof Error ? err.message : 'Failed to process documents');
-      } finally {
-        if (e.target) {
-          e.target.value = '';
-        }
-      }
-    };
+      };
   
     // Render processing files section
     const renderProcessingFiles = () => {

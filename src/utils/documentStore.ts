@@ -1,7 +1,7 @@
 // utils/documentStore.ts
 import { ProjectDocument } from '../types/project';
 import { projectStore } from '../services/projectStore';
-import { documentProcessingService } from '../services/enhancedDocumentParsingService';
+import { improvedDocumentService } from '../services/improvedDocumentService';
 
 class DocumentStoreService {
   // Get all documents across all projects
@@ -19,7 +19,7 @@ class DocumentStoreService {
 
     try {
       // Process document with the new service
-      const document = await documentProcessingService.processDocument(file, projectId);
+      const document = await improvedDocumentService.processDocument(file, projectId);
       
       // Add document to project
       projectStore.addDocumentToProject(projectId, document);
@@ -33,24 +33,8 @@ class DocumentStoreService {
 
   // Delete a document from its project
   async deleteDocument(documentId: string): Promise<void> {
-    const documentInfo = projectStore.findDocumentInProjects(documentId);
-    
-    if (!documentInfo) {
-      throw new Error('Document not found in any project');
-    }
-
-    const { projectId, document } = documentInfo;
-
     try {
-      // Remove file content
-      await window.fs.unlink(document.name);
-      
-      // Delete document vectors
-      await documentProcessingService.deleteDocument(documentId);
-      
-      // Remove document from project
-      projectStore.removeDocumentFromProject(projectId, documentId);
-      
+      await improvedDocumentService.deleteDocument(documentId);
     } catch (error) {
       console.error('Error deleting document:', error);
       throw error;
