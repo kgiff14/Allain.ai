@@ -8,6 +8,10 @@ export interface Memory {
     source: 'auto' | 'manual';  // Was it created by filter or user
     messageId?: string;         // Reference to originating message if auto-created
   }
+
+  export interface SerializedMemory extends Omit<Memory, 'createdAt'> {
+    createdAt: string;
+  }
   
   // Configuration for memory features
   export interface MemoryConfig {

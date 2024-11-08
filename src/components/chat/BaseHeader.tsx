@@ -39,9 +39,10 @@ export const ChatInputHeader: React.FC = () => {
 
   const handleAddMemory = (content: string) => {
     const memoryId = Date.now().toString();
+    const createdAt = new Date();
     personaStore.addMemory(persona.id, {
       content,
-      createdAt: new Date(),
+      createdAt,
       source: 'manual'
     });
     setNewMemoryId(memoryId);

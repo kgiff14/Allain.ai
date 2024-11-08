@@ -172,10 +172,13 @@ getMemoryConfig(personaId: string): MemoryConfig {
     const stored = localStorage.getItem(PERSONAS_STORAGE_KEY);
     const personas: PersonaWithMemory[] = stored ? JSON.parse(stored) : [];
     
-    // Ensure all personas have memory config
+    // Ensure all personas have memory config and convert dates
     return personas.map(persona => ({
       ...persona,
-      memories: persona.memories || [],
+      memories: (persona.memories || []).map(memory => ({
+        ...memory,
+        createdAt: new Date(memory.createdAt)
+      })),
       memoryConfig: persona.memoryConfig || DEFAULT_MEMORY_CONFIG
     }));
   }

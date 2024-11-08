@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings2, FolderOpen, HardDrive } from 'lucide-react';
+import { ArrowLeft, Settings2, FolderOpen, HardDrive, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ConfigDrawer from '../ui/ConfigDrawer';
 import { MemoryIndicator } from '../memories/MemoryIndicator';
@@ -135,7 +135,7 @@ export const ChatThreadHeader: React.FC<{
                 onClick={onDeleteChat}
                 className="text-red-400 hover:text-red-300 text-sm"
               >
-                Delete Chat
+                <Trash2 size={17}/>
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Plus, Brain, BrainCircuit, Trash2, Edit2, Info } from 'lucide-react';
-import { PersonaWithMemory, Memory, MemoryConfig } from '../../types/memory';
+import { X, Plus, Brain, Trash2 } from 'lucide-react';
+import { PersonaWithMemory, MemoryConfig } from '../../types/memory';
 import { formatTimestamp } from '../../utils/formatTimestamp';
 
 interface MemoriesModalProps {
@@ -21,7 +21,6 @@ export const MemoriesModal: React.FC<MemoriesModalProps> = ({
   onUpdateMemoryConfig,
 }) => {
   const [newMemory, setNewMemory] = useState('');
-  const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
 
   if (!isOpen) return null;
 
@@ -121,8 +120,8 @@ export const MemoriesModal: React.FC<MemoriesModalProps> = ({
                 }
               }}
               disabled={!newMemory.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white
-                       rounded-lg hover:bg-blue-500 disabled:opacity-50
+              className="flex items-center gap-2 px-4 py-2 text-blue-600
+                       rounded-lg hover:text-white disabled:opacity-50
                        disabled:cursor-not-allowed transition-colors"
             >
               <Plus size={16} />
@@ -147,12 +146,6 @@ export const MemoriesModal: React.FC<MemoriesModalProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => setEditingMemory(memory)}
-                    className="p-1 text-zinc-400 hover:text-white transition-colors"
-                  >
-                    <Edit2 size={14} />
-                  </button>
                   <button
                     onClick={() => onDeleteMemory(memory.id)}
                     className="p-1 text-zinc-400 hover:text-red-400 transition-colors"

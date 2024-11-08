@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Brain } from 'lucide-react';
-import { PersonaWithMemory, Memory } from '../../types/memory';
+import { PersonaWithMemory } from '../../types/memory';
 
 interface MemoryIndicatorProps {
   persona: PersonaWithMemory;
@@ -62,18 +62,3 @@ export const MemoryIndicator: React.FC<MemoryIndicatorProps> = ({
     </button>
   );
 };
-
-// Add to your global CSS (e.g., globals.css)
-/*
-@keyframes wiggle {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(-10deg); }
-  50% { transform: rotate(10deg); }
-  75% { transform: rotate(-5deg); }
-  100% { transform: rotate(0deg); }
-}
-
-.animate-wiggle {
-  animation: wiggle 1s ease-in-out;
-}
-*/

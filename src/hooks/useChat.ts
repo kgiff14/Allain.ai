@@ -6,6 +6,8 @@ import { chatStore } from '../utils/chatStore';
 import { enhancedChatService } from '../services/enhancedChatService';
 import { Model } from '../components/chat/ModelSelector';
 import { useRAGContext } from './useRAGContext';
+import { memoryService } from '../services/memoryService';
+import { usePersona } from './usePersona'; // Add this import
 
 // Helper to create a persistent blob URL from a File
 const createPersistentBlobUrl = async (file: File): Promise<string> => {
@@ -14,27 +16,54 @@ const createPersistentBlobUrl = async (file: File): Promise<string> => {
   return URL.createObjectURL(blob);
 };
 
+// Add new state for memory notifications
+interface UseChatState {
+  messages: Message[];
+  isLoading: boolean;
+  error: string | null;
+  streamingContent: string;
+  currentChatId: string | null;
+  newMemoryId: string | null;
+}
+
 export const useChat = (chatId?: string) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [streamingContent, setStreamingContent] = useState<string>('');
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [state, setState] = useState<UseChatState>({
+    messages: [],
+    isLoading: false,
+    error: null,
+    streamingContent: '',
+    currentChatId: null,
+    newMemoryId: null
+  });
   
   const navigate = useNavigate();
   const { getRelevantContext } = useRAGContext();
+  const persona = usePersona(); // Add this line to get the current persona
 
   useEffect(() => {
     if (chatId) {
       const existingChat = chatStore.getChat(chatId);
       if (existingChat) {
-        setMessages(existingChat.messages);
-        setCurrentChatId(chatId);
+        setState(prev => ({
+          ...prev,
+          messages: existingChat.messages,
+          currentChatId: chatId
+        }));
       } else {
         navigate('/');
       }
     }
   }, [chatId, navigate]);
+
+  // Clear memory notification after delay
+  useEffect(() => {
+    if (state.newMemoryId) {
+      const timer = setTimeout(() => {
+        setState(prev => ({ ...prev, newMemoryId: null }));
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.newMemoryId]);
 
   const handleAssistantResponse = async (
     chatId: string, 
@@ -44,24 +73,25 @@ export const useChat = (chatId?: string) => {
     images?: File[]
   ) => {
     try {
-      setIsLoading(true);
-      setStreamingContent('');
-      setError(null);
+      setState(prev => ({ ...prev, isLoading: true, streamingContent: '', error: null }));
   
       // Get relevant context from RAG
       const ragContext = await getRelevantContext(content);
         
+
+      // Get the assistant's response
       const assistantMessage = await enhancedChatService.streamMessage(
         content,
         currentMessages,
         (chunk) => {
-          setStreamingContent(prev => prev + chunk);
+          setState(prev => ({ ...prev, streamingContent: prev.streamingContent + chunk }));
         },
         model,
         ragContext,
         images
       );
-  
+
+
       const messageWithModel: Message = {
         ...assistantMessage,
         model: {
@@ -71,62 +101,66 @@ export const useChat = (chatId?: string) => {
       };
   
       const updatedMessages = [...currentMessages, messageWithModel];
-      setMessages(updatedMessages);
-      setStreamingContent('');
+      setState(prev => ({ 
+        ...prev, 
+        messages: updatedMessages,
+        streamingContent: ''
+      }));
   
       chatStore.updateChat(chatId, updatedMessages);
     } catch (err) {
       console.error('Detailed error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred while sending the message');
+      setState(prev => ({ 
+        ...prev, 
+        error: err instanceof Error ? err.message : 'An error occurred while sending the message'
+      }));
     } finally {
-      setIsLoading(false);
+      setState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
   const sendMessage = async (content: string, model: Model, images?: File[]) => {
     try {
-      setError(null);
+      setState(prev => ({ ...prev, error: null }));
       
-      // Create persistent blob URLs for images if present
-      const attachments = images ? await Promise.all(
-        images.map(async file => ({
-          id: Math.random().toString(),
-          type: 'image' as const,
-          url: await createPersistentBlobUrl(file),
-          name: file.name,
-        }))
-      ) : undefined;
-
       const userMessage: Message = {
         id: Date.now().toString(),
         content,
         role: 'user',
         timestamp: new Date(),
-        attachments,
+        attachments: images ? await Promise.all(images.map(async file => ({
+          id: Math.random().toString(),
+          type: 'image' as const,
+          url: await createPersistentBlobUrl(file),
+          name: file.name,
+        }))) : undefined,
       };
 
-      const newMessages = [...messages, userMessage];
-      setMessages(newMessages);
+      const newMessages = [...state.messages, userMessage];
+      setState(prev => ({ ...prev, messages: newMessages }));
 
-      if (!currentChatId) {
+      if (!state.currentChatId) {
         const newChatId = chatStore.createChat(userMessage);
-        setCurrentChatId(newChatId);
+        setState(prev => ({ ...prev, currentChatId: newChatId }));
         window.history.replaceState(null, '', `/chat/${newChatId}`);
         await handleAssistantResponse(newChatId, newMessages, content, model, images);
       } else {
-        chatStore.updateChat(currentChatId, newMessages);
-        await handleAssistantResponse(currentChatId, newMessages, content, model, images);
+        chatStore.updateChat(state.currentChatId, newMessages);
+        await handleAssistantResponse(state.currentChatId, newMessages, content, model, images);
       }
     } catch (err) {
       console.error('Detailed error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred while sending the message');
+      setState(prev => ({ 
+        ...prev, 
+        error: err instanceof Error ? err.message : 'An error occurred while sending the message'
+      }));
     }
   };
 
   const deleteChat = () => {
-    if (currentChatId) {
+    if (state.currentChatId) {
       // Clean up blob URLs before deleting chat
-      messages.forEach(message => {
+      state.messages.forEach(message => {
         message.attachments?.forEach(attachment => {
           if (attachment.type === 'image') {
             URL.revokeObjectURL(attachment.url);
@@ -134,7 +168,7 @@ export const useChat = (chatId?: string) => {
         });
       });
       
-      chatStore.deleteChat(currentChatId);
+      chatStore.deleteChat(state.currentChatId);
       navigate('/');
     }
   };
@@ -142,7 +176,7 @@ export const useChat = (chatId?: string) => {
   // Clean up blob URLs when component unmounts
   useEffect(() => {
     return () => {
-      messages.forEach(message => {
+      state.messages.forEach(message => {
         message.attachments?.forEach(attachment => {
           if (attachment.type === 'image') {
             URL.revokeObjectURL(attachment.url);
@@ -150,14 +184,10 @@ export const useChat = (chatId?: string) => {
         });
       });
     };
-  }, []);
+  });
 
   return {
-    messages,
-    isLoading,
-    error: error,
-    streamingContent,
-    currentChatId,
+    ...state,
     sendMessage,
     deleteChat
   };
