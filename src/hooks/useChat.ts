@@ -80,16 +80,22 @@ export const useChat = (chatId?: string) => {
         
 
       // Get the assistant's response
-      const assistantMessage = await enhancedChatService.streamMessage(
+      const assistantMessage = await enhancedChatService.streamMessage({
         content,
-        currentMessages,
-        (chunk) => {
-          setState(prev => ({ ...prev, streamingContent: prev.streamingContent + chunk }));
+        messageHistory: currentMessages,
+        onChunk: (chunk) => {
+          setState(prev => ({ 
+            ...prev, 
+            streamingContent: prev.streamingContent + chunk 
+          }));
+        },
+        onMemoryCreated: (memoryId) => {
+          setState(prev => ({ ...prev, newMemoryId: memoryId }));
         },
         model,
         ragContext,
         images
-      );
+      });
 
 
       const messageWithModel: Message = {

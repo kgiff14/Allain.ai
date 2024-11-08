@@ -103,8 +103,7 @@ export const MemoriesModal: React.FC<MemoriesModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Add Memory */}
           <div className="flex gap-2">
-            <input
-              type="text"
+            <textarea
               value={newMemory}
               onChange={(e) => setNewMemory(e.target.value)}
               placeholder="Add a new memory..."

@@ -15,6 +15,16 @@ export type MessageContent = {
   };
 };
 
+interface StreamMessageOptions {
+  content: string;
+  messageHistory?: Message[];
+  onChunk: (chunk: string) => void;
+  onMemoryCreated?: (memoryId: string) => void;  // New callback
+  model: Model;
+  ragContext?: string;
+  images?: File[];
+}
+
 interface ModelConfig {
   maxTokens: number;
   temperature: number;
@@ -124,14 +134,15 @@ class EnhancedChatService {
     return messageContent;
   }
 
-  async streamMessage(
-    content: string,
-    messageHistory: Message[] = [],
-    onChunk: (chunk: string) => void,
-    model: Model,
-    ragContext?: string,
-    images?: File[]
-  ): Promise<Message> {
+  async streamMessage({
+    content,
+    messageHistory = [],
+    onChunk,
+    onMemoryCreated,  // New parameter
+    model,
+    ragContext,
+    images
+  }: StreamMessageOptions): Promise<Message> {
     const config = this.getModelConfig(model);
     const currentPersona = personaStore.getSelectedPersona();
     
@@ -141,7 +152,14 @@ class EnhancedChatService {
       ? memoryService.processMessageForMemories(
           { id: messageId, content, role: 'user', timestamp: new Date() },
           currentPersona.id
-        )
+        ).then(memoryContent => {
+          // Notify UI about memory creation if callback provided
+          if (memoryContent && onMemoryCreated) {
+            const memoryId = Date.now().toString();
+            onMemoryCreated(memoryId);
+          }
+          return memoryContent;
+        })
       : Promise.resolve(null);
 
     // Get system prompt with memories

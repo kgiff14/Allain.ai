@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Settings2, FolderOpen, HardDrive, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ConfigDrawer from '../ui/ConfigDrawer';
@@ -26,23 +26,36 @@ export const ChatThreadHeader: React.FC<{
   const persona = usePersona();
   const [activeProjects, setActiveProjects] = useState<{ id: string; name: string; }[]>([]);
 
+  // Define loadActiveProjects
+  const loadActiveProjects = useCallback(() => {
+    const projects = projectStore.getAllProjects()
+      .filter(p => p.isActive)
+      .map(({ id, name }) => ({ id, name }));
+    setActiveProjects(projects);
+  }, []);
+
   useEffect(() => {
-    const loadActiveProjects = () => {
-      const projects = projectStore.getAllProjects()
-        .filter(p => p.isActive)
-        .map(({ id, name }) => ({ id, name }));
-      setActiveProjects(projects);
+    // Add memory event listener
+    const handleMemoryCreated = (event: CustomEvent<{ memoryId: string }>) => {
+      setNewMemoryId(event.detail.memoryId);
+      // Clear notification after delay
+      setTimeout(() => {
+        setNewMemoryId(undefined);
+      }, 3000);
     };
 
-    loadActiveProjects();
+    loadActiveProjects(); // Initial load
+    
+    window.addEventListener('memory-created', handleMemoryCreated as EventListener);
     window.addEventListener('project-changed', loadActiveProjects);
     window.addEventListener('project-updated', loadActiveProjects);
 
     return () => {
+      window.removeEventListener('memory-created', handleMemoryCreated as EventListener);
       window.removeEventListener('project-changed', loadActiveProjects);
       window.removeEventListener('project-updated', loadActiveProjects);
     };
-  }, []);
+  }, [loadActiveProjects]);
 
   const handleAddMemory = (content: string) => {
     const memoryId = Date.now().toString();
@@ -67,7 +80,7 @@ export const ChatThreadHeader: React.FC<{
       <div className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-10">
         <div className="relative w-full">
           {/* System Icons - Absolute Positioned */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-3 z-20">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-7 z-2">
             <button
               onClick={() => setIsConfigOpen(true)}
               className="text-zinc-400 hover:text-white transition-colors duration-200"

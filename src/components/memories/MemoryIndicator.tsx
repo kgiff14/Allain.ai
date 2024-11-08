@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Brain } from 'lucide-react';
+import { Brain, Plus } from 'lucide-react';
 import { PersonaWithMemory } from '../../types/memory';
 
 interface MemoryIndicatorProps {
   persona: PersonaWithMemory;
   onOpenMemories: () => void;
-  newMemoryId?: string; // To trigger animation
+  newMemoryId?: string;
 }
 
 export const MemoryIndicator: React.FC<MemoryIndicatorProps> = ({
@@ -30,9 +30,14 @@ export const MemoryIndicator: React.FC<MemoryIndicatorProps> = ({
     }
   }, [newMemoryId]);
 
+  const handleClick = () => {
+    setShowBadge(false);  // Clear the badge when clicked
+    onOpenMemories();     // Open memories modal
+  };
+
   return (
     <button
-      onClick={onOpenMemories}
+      onClick={handleClick}
       className="relative group"
       aria-label="View memories"
     >
@@ -43,14 +48,8 @@ export const MemoryIndicator: React.FC<MemoryIndicatorProps> = ({
       
       {/* New memory badge */}
       {showBadge && (
-        <div 
-          className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full 
-                     animate-fade-in cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowBadge(false);
-          }}
-        />
+        <Plus className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full 
+                     animate-fade-in cursor-pointer" />
       )}
 
       {/* Hover tooltip */}

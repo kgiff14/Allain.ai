@@ -30,6 +30,15 @@ class PersonaStoreService {
     window.dispatchEvent(new CustomEvent(PERSONA_CHANGE_EVENT));
   }
 
+  // Add new event for memory notifications
+  private dispatchMemoryCreated(memoryId: string) {
+    window.dispatchEvent(
+      new CustomEvent('memory-created', { 
+        detail: { memoryId } 
+      })
+    );
+  }
+
   private dispatchPersonaUpdate() {
     window.dispatchEvent(new CustomEvent(PERSONA_UPDATE_EVENT));
   }
@@ -101,28 +110,6 @@ class PersonaStoreService {
     return !!persona?.isDefault;
   }
 
-  // Add memory to a persona
-  addMemory(personaId: string, memory: Omit<Memory, 'id'>): void {
-    const personas = this.getAllPersonas();
-    const updatedPersonas = personas.map(persona => {
-      if (persona.id === personaId) {
-        return {
-          ...persona,
-          memories: [
-            ...(persona.memories || []),
-            {
-              id: Date.now().toString(),
-              ...memory
-            }
-          ]
-        };
-      }
-      return persona;
-    });
-    
-    localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(updatedPersonas));
-    this.dispatchPersonaUpdate();
-  }
 
   // Remove memory from a persona
   removeMemory(personaId: string, memoryId: string): void {
@@ -162,10 +149,10 @@ class PersonaStoreService {
   }
 
   // Get memory config for a persona
-getMemoryConfig(personaId: string): MemoryConfig {
-  const persona = this.getAllPersonas().find(p => p.id === personaId);
-  return persona?.memoryConfig || DEFAULT_MEMORY_CONFIG;
-}
+  getMemoryConfig(personaId: string): MemoryConfig {
+    const persona = this.getAllPersonas().find(p => p.id === personaId);
+    return persona?.memoryConfig || DEFAULT_MEMORY_CONFIG;
+  }
 
 // Override getAllPersonas to ensure memory config exists
   getAllPersonas(): PersonaWithMemory[] {
@@ -182,6 +169,33 @@ getMemoryConfig(personaId: string): MemoryConfig {
       memoryConfig: persona.memoryConfig || DEFAULT_MEMORY_CONFIG
     }));
   }
+
+  // Update addMemory to dispatch event
+  addMemory(personaId: string, memory: Omit<Memory, 'id'>): void {
+    const memoryId = Date.now().toString();
+    const personas = this.getAllPersonas();
+    const updatedPersonas = personas.map(persona => {
+      if (persona.id === personaId) {
+        return {
+          ...persona,
+          memories: [
+            ...(persona.memories || []),
+            {
+              id: memoryId,
+              ...memory
+            }
+          ]
+        };
+      }
+      return persona;
+    });
+    
+    localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(updatedPersonas));
+    this.dispatchPersonaUpdate();
+    // Dispatch memory created event
+    this.dispatchMemoryCreated(memoryId);
+  }
+
 
   // Helper to get formatted memories for system prompt
   getMemoriesForSystemPrompt(personaId: string): string {
