@@ -84,15 +84,30 @@ interface FileProgress {
         }
     
         try {
-          await projectStore.removeDocumentFromProject(projectId, documentId);
+          setError(null);
+          console.log('Initiating document deletion:', documentId);
           
+          // First, remove from UI if document is selected
           if (selectedDocument?.id === documentId) {
             setSelectedDocument(null);
             setIsViewerOpen(false);
           }
+    
+          // Delete via service
+          await improvedDocumentService.deleteDocument(documentId);
+          
+          console.log('Document deleted successfully');
+    
+          // Refresh project documents
+          const updatedProject = projectStore.getProject(projectId);
+          if (!updatedProject) {
+            throw new Error('Project not found after deletion');
+          }
+    
         } catch (err) {
           console.error('Error deleting document:', err);
           setError(err instanceof Error ? err.message : 'Failed to delete document');
+          throw err; // Re-throw to handle in parent components if needed
         }
       };
   

@@ -261,29 +261,54 @@ class ImprovedDocumentService {
   }
 
   async deleteDocument(documentId: string): Promise<void> {
+    console.log('Starting document deletion process for:', documentId);
+    
     try {
-      // Delete vectors associated with the document
-      await improvedVectorStore.deleteDocumentVectors(documentId);
-      
-      // Find document in projects to get filename
+      // First find the document info
       const documentInfo = projectStore.findDocumentInProjects(documentId);
       if (!documentInfo) {
+        console.log('Document not found in any project:', documentId);
         throw new Error('Document not found');
+      }
+
+      console.log('Found document in project:', documentInfo.projectId);
+
+      // Delete from vector store first
+      try {
+        await improvedVectorStore.deleteDocumentVectors(documentId);
+        console.log('Vectors deleted for document:', documentId);
+      } catch (error) {
+        console.error('Error deleting vectors:', error);
+        // Continue with deletion even if vector deletion fails
       }
 
       // Delete the file content
       try {
         await window.fs.unlink(documentInfo.document.name);
+        console.log('File content deleted:', documentInfo.document.name);
       } catch (error) {
         console.error('Error deleting file content:', error);
+        // Continue with deletion even if file deletion fails
       }
-      
-      // The project store will handle removing the document from the project
+
+      // Remove from project
+      try {
+        projectStore.removeDocumentFromProject(
+          documentInfo.projectId, 
+          documentId
+        );
+        console.log('Document removed from project');
+      } catch (error) {
+        console.error('Error removing document from project:', error);
+        throw error; // This is critical, so we throw
+      }
+
     } catch (error) {
-      console.error('Error deleting document:', error);
+      console.error('Error in document deletion process:', error);
       throw error;
     }
   }
 }
+
 
 export const improvedDocumentService = new ImprovedDocumentService();
