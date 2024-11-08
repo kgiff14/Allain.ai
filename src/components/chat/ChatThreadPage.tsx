@@ -80,16 +80,6 @@ const ChatThreadPage: React.FC = () => {
     loadDocuments();
   }, []);
 
-  const handleAddDocument = async (file: File) => {
-    try {
-      // const newDocument = await documentStore.addDocument(file);
-      // setDocuments(prev => [newDocument, ...prev]);
-    } catch (error) {
-      console.error('Error adding document:', error);
-      throw error;
-    }
-  };
-
   return (
     <div className="h-screen bg-zinc-900 flex flex-col">
       <ChatThreadHeader 

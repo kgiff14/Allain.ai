@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, FolderOpen, Files, Edit2, Trash2, ToggleLeft, ToggleRight, FileText, Loader2, Upload } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Files, Edit2, Trash2, ToggleLeft, ToggleRight, FileText, Loader2, Upload } from 'lucide-react';
 import { ProjectModal } from './ProjectModal';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Project, ProjectDocument, CreateProjectInput } from '../../types/project';

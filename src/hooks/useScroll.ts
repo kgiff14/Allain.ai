@@ -8,7 +8,7 @@ export const useScroll = (containerRef: RefObject<HTMLElement>) => {
     const container = containerRef.current;
     if (!container) return true;
     
-    const threshold = 100; // pixels from bottom
+    const threshold = 175; // pixels from bottom
     return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
   };
 

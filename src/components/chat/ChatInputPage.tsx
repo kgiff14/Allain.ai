@@ -1,7 +1,6 @@
 // components/chat/ChatInputPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings2, FolderOpen, Info, Gauge } from 'lucide-react';
 import ChatInput from './ChatInput';
 import { ChatHistory } from './ChatHistory';
 import { ProjectDrawer } from '../projects/ProjectDrawer';

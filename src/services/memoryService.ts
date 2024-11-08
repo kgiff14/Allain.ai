@@ -75,7 +75,7 @@ class MemoryService {
           system: "You are a memory detection system. Your task is to determine if a message contains information worth remembering for future conversations. You must respond in one of two ways only:\n1. If the message contains information worth remembering, provide a clear, concise, factual summary of ONLY the important information.\n2. If there's nothing significant to remember, respond with exactly 'null' (no quotes).\n\nKeep any summaries brief, factual, and objective. Focus on concrete information, preferences, or factual statements.",
           messages: [{
             role: "user",
-            content: `Analyze this message for information worth remembering:\n\n"${message.content}"\n\nRespond with either a concise summary of important information or 'null' if there's nothing significant.`
+            content: `Analyze this message for information worth remembering:\n\n"${message.content}"\n\nRespond with either a concise summary of important information or 'null' if there's nothing significant. Also look for key words or phrases like, 'Remember this', etc.`
           }]
         })
       });
