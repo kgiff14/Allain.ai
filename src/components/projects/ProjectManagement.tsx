@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Files, Edit2, Trash2, ToggleLeft, ToggleRight, FileText, Loader2, Upload } from 'lucide-react';
+import { Files, Edit2, Trash2, ToggleLeft, ToggleRight, FileText, Loader2, Upload, HardDrive, Database } from 'lucide-react';
 import { ProjectModal } from './ProjectModal';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Project, ProjectDocument, CreateProjectInput } from '../../types/project';
@@ -7,6 +7,7 @@ import { projectStore } from '../../services/projectStore';
 import { improvedDocumentService } from '../../services/improvedDocumentService';
 import { v4 as uuidv4 } from 'uuid';
 import { formatTimestamp } from '../../utils/formatTimestamp';
+import { formatBytes } from '../../utils/formatBytes';
 
 const ProjectManagement = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -238,6 +239,14 @@ const ProjectManagement = () => {
                 <div className="flex items-center gap-1">
                     <FileText size={12} />
                     <span>{project.documents.length} file{project.documents.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="flex items-center gap-1.5" title="Local storage usage">
+                    <HardDrive size={12} />
+                    <span>{formatBytes(new Blob([JSON.stringify(project)]).size)}</span>
+                </div>
+                <div className="flex items-center gap-1.5" title="Vector storage usage">
+                    <Database size={12} />
+                    <span>{formatBytes(project.documents.length * 1024)}</span>
                 </div>
                 <div>
                     Created {formatTimestamp(project.createdAt)}
