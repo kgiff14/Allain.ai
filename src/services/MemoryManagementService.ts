@@ -17,7 +17,7 @@ export interface StorageUsage {
 
 class MemoryManagementService {
   private historyData: StorageUsage[] = [];
-  private readonly MAX_HISTORY_POINTS = 50;
+  private readonly MAX_HISTORY_POINTS = 25;
   private updateInterval: any = null;
   private usageSubject = new Subject<StorageUsage[]>();
 
