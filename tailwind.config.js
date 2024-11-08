@@ -7,6 +7,11 @@ module.exports = {
   ],
   theme: {
     extend: {
+      maxHeight: {
+        '96': '24rem',  // 384px
+        '128': '32rem', // 512px
+        // Add any other values you need
+      },
       colors: {
         zinc: {
           700: '#3f3f46',
