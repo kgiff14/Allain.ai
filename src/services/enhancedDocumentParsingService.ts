@@ -5,78 +5,94 @@ import { embeddingsService } from './localEmbeddingsService';
 import { vectorStore } from './vectorStoreService';
 import { getFileExtension, isCodeFile } from '../utils/fileTypes';
 
-const CHUNK_SIZE = 512; // Characters per chunk
-const CHUNK_OVERLAP = 50; // Characters of overlap between chunks
-const CODE_CHUNK_SIZE = 20; // Lines for code files
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
+const CHUNK_SIZE = 1000; // Characters per chunk for text
+const OVERLAP_SIZE = 100;
+const CODE_CHUNK_SIZE = 25; // Lines for code files
+const PROCESSING_BATCH_SIZE = 3;
 
 interface ProcessingOptions {
   onProgress?: (progress: number) => void;
 }
 
 class DocumentProcessingService {
-  private async processTextChunks(text: string, documentId: string, projectId: string, fileName: string) {
-    const chunks: string[] = [];
+  private async* generateTextChunks(text: string): AsyncGenerator<string> {
     let currentIndex = 0;
-
-    // Split text into chunks with overlap
+    
     while (currentIndex < text.length) {
-      const chunkEnd = Math.min(currentIndex + CHUNK_SIZE, text.length);
-      const chunk = text.slice(currentIndex, chunkEnd);
-      chunks.push(chunk);
-      currentIndex = chunkEnd - CHUNK_OVERLAP;
-      if (currentIndex >= text.length) break;
-    }
-
-    // Process chunks in batches to manage memory
-    const BATCH_SIZE = 5;
-    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-      const batchChunks = chunks.slice(i, i + BATCH_SIZE);
+      const endIndex = Math.min(currentIndex + CHUNK_SIZE, text.length);
+      const chunk = text.slice(currentIndex, endIndex);
+      yield chunk;
       
-      // Process batch
-      await Promise.all(batchChunks.map(async (chunk, index) => {
-        const embedding = await embeddingsService.generateEmbedding(chunk);
-        
-        await vectorStore.addVector({
-          id: uuidv4(),
-          vector: embedding,
-          metadata: {
-            documentId,
-            projectId,
-            fileName,
-            startIndex: (i + index) * (CHUNK_SIZE - CHUNK_OVERLAP),
-            endIndex: (i + index) * (CHUNK_SIZE - CHUNK_OVERLAP) + chunk.length
-          }
-        });
-      }));
-
-      // Force garbage collection if available
-      if (global.gc) {
-        global.gc();
-      }
+      // Move forward while accounting for overlap
+      currentIndex = endIndex - OVERLAP_SIZE;
+      if (currentIndex >= text.length) break;
+      
+      // Prevent infinite loop
+      if (currentIndex <= 0) break;
     }
   }
 
-  private async processCodeChunks(code: string, documentId: string, projectId: string, fileName: string) {
+  private async* generateCodeChunks(code: string): AsyncGenerator<{
+    text: string;
+    startLine: number;
+    endLine: number;
+  }> {
     const lines = code.split('\n');
-    const chunks: { text: string; startLine: number; }[] = [];
-    
-    // Split code into chunks by lines
-    for (let i = 0; i < lines.length; i += CODE_CHUNK_SIZE) {
-      const chunkLines = lines.slice(i, i + CODE_CHUNK_SIZE);
-      chunks.push({
-        text: chunkLines.join('\n'),
-        startLine: i + 1
-      });
-    }
+    let currentLine = 0;
 
-    // Process code chunks in smaller batches
-    const BATCH_SIZE = 3;
-    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-      const batchChunks = chunks.slice(i, i + BATCH_SIZE);
+    while (currentLine < lines.length) {
+      const endLine = Math.min(currentLine + CODE_CHUNK_SIZE, lines.length);
+      const chunkLines = lines.slice(currentLine, endLine);
       
-      await Promise.all(batchChunks.map(async (chunk) => {
-        const embedding = await embeddingsService.generateEmbedding(chunk.text);
-        
+      yield {
+        text: chunkLines.join('\n'),
+        startLine: currentLine + 1,
+        endLine: endLine
+      };
+
+      currentLine = endLine;
+      if (currentLine >= lines.length) break;
+    }
+  }
+
+  private async processChunkBatch<T>(
+    chunks: T[],
+    processor: (chunk: T) => Promise<void>
+  ): Promise<void> {
+    try {
+      await Promise.all(
+        chunks.map(async (chunk) => {
+          try {
+            await processor(chunk);
+          } catch (error) {
+            console.error('Error processing chunk:', error);
+            throw error;
+          }
+        })
+      );
+
+      // Add a small delay between batches to prevent memory buildup
+      await new Promise(resolve => setTimeout(resolve, 50));
+    } catch (error) {
+      console.error('Error processing batch:', error);
+      throw error;
+    }
+  }
+
+  private async processTextContent(
+    content: string,
+    documentId: string,
+    projectId: string,
+    fileName: string,
+    onProgress?: (progress: number) => void
+  ): Promise<void> {
+    let processedChunks = 0;
+    const totalChunks = Math.ceil(content.length / CHUNK_SIZE);
+    
+    for await (const chunk of this.generateTextChunks(content)) {
+      await this.processChunkBatch([chunk], async (text) => {
+        const embedding = await embeddingsService.generateEmbedding(text);
         await vectorStore.addVector({
           id: uuidv4(),
           vector: embedding,
@@ -84,16 +100,84 @@ class DocumentProcessingService {
             documentId,
             projectId,
             fileName,
-            startLine: chunk.startLine,
-            endLine: chunk.startLine + chunk.text.split('\n').length - 1
+            chunkIndex: processedChunks,
+            contentType: 'text'
           }
         });
-      }));
-
-      // Force garbage collection if available
-      if (global.gc) {
-        global.gc();
+      });
+  
+      processedChunks++;
+      if (onProgress) {
+        // Calculate and call progress callback after each chunk
+        const progress = (processedChunks / totalChunks) * 100;
+        onProgress(Math.min(progress, 100));
       }
+      
+      // Add small delay to prevent UI freezing
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+  }
+
+  private async processCodeContent(
+    content: string,
+    documentId: string,
+    projectId: string,
+    fileName: string,
+    onProgress?: (progress: number) => void
+  ): Promise<void> {
+    let processedChunks = 0;
+    let currentBatch: Array<{
+      text: string;
+      startLine: number;
+      endLine: number;
+    }> = [];
+
+    for await (const chunk of this.generateCodeChunks(content)) {
+      currentBatch.push(chunk);
+
+      if (currentBatch.length >= PROCESSING_BATCH_SIZE) {
+        await this.processChunkBatch(currentBatch, async (codeChunk) => {
+          const embedding = await embeddingsService.generateEmbedding(codeChunk.text);
+          await vectorStore.addVector({
+            id: uuidv4(),
+            vector: embedding,
+            metadata: {
+              documentId,
+              projectId,
+              fileName,
+              startLine: codeChunk.startLine,
+              endLine: codeChunk.endLine,
+              contentType: 'code'
+            }
+          });
+        });
+
+        processedChunks += currentBatch.length;
+        if (onProgress) {
+          const totalChunks = Math.ceil(content.split('\n').length / CODE_CHUNK_SIZE);
+          onProgress((processedChunks / totalChunks) * 100);
+        }
+        currentBatch = [];
+      }
+    }
+
+    // Process remaining chunks
+    if (currentBatch.length > 0) {
+      await this.processChunkBatch(currentBatch, async (codeChunk) => {
+        const embedding = await embeddingsService.generateEmbedding(codeChunk.text);
+        await vectorStore.addVector({
+          id: uuidv4(),
+          vector: embedding,
+          metadata: {
+            documentId,
+            projectId,
+            fileName,
+            startLine: codeChunk.startLine,
+            endLine: codeChunk.endLine,
+            contentType: 'code'
+          }
+        });
+      });
     }
   }
 
@@ -102,13 +186,18 @@ class DocumentProcessingService {
     projectId: string,
     options: ProcessingOptions = {}
   ): Promise<ProjectDocument> {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error(`File size exceeds maximum limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+    }
+
     const extension = getFileExtension(file.name);
     if (!extension) {
       throw new Error(`Unsupported file type: ${file.name}`);
     }
 
     try {
-      // Read file content in chunks
+      // Read file content
       const content = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
@@ -125,14 +214,26 @@ class DocumentProcessingService {
         uploadedAt: new Date()
       };
 
-      // Store content
+      // Store raw content
       await window.fs.writeFile(file.name, content);
 
       // Process content based on file type
       if (isCodeFile(extension)) {
-        await this.processCodeChunks(content, document.id, projectId, file.name);
+        await this.processCodeContent(
+          content,
+          document.id,
+          projectId,
+          file.name,
+          options.onProgress
+        );
       } else {
-        await this.processTextChunks(content, document.id, projectId, file.name);
+        await this.processTextContent(
+          content,
+          document.id,
+          projectId,
+          file.name,
+          options.onProgress
+        );
       }
 
       return document;
@@ -149,24 +250,23 @@ class DocumentProcessingService {
 
   async deleteDocument(documentId: string): Promise<void> {
     try {
-      // Delete vectors in batches
-      const BATCH_SIZE = 100;
+      const DELETION_BATCH_SIZE = 50;
       let deleted = 0;
       
       while (true) {
-        const vectors = await vectorStore.getVectorsByMetadata({ documentId }, BATCH_SIZE);
+        const vectors = await vectorStore.getVectorsByMetadata(
+          { documentId },
+          DELETION_BATCH_SIZE
+        );
+        
         if (vectors.length === 0) break;
         
-        await Promise.all(vectors.map(vector => 
-          vectorStore.deleteVector(vector.id)
-        ));
+        await Promise.all(
+          vectors.map(vector => vectorStore.deleteVector(vector.id))
+        );
         
         deleted += vectors.length;
-        
-        // Force garbage collection if available
-        if (global.gc) {
-          global.gc();
-        }
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
     } catch (error) {
       console.error('Error deleting document vectors:', error);

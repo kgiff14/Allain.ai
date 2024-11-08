@@ -1,8 +1,14 @@
+// components/projects/ProjectsList.tsx
 import React, { useState } from 'react';
 import { Edit2, Trash2, FolderOpen, FileText, ToggleLeft, ToggleRight, Files, Loader2 } from 'lucide-react';
-import { Project } from '../../types/project';
+import { Project, ProjectDocument } from '../../types/project';
 import { formatTimestamp } from '../../utils/formatTimestamp';
 import ProjectDocumentsModal from './ProjectDocumentsModal';
+
+interface ProcessingFile {
+  fileName: string;
+  progress: number;
+}
 
 interface ProjectsListProps {
   projects: Project[];
@@ -12,7 +18,7 @@ interface ProjectsListProps {
   onProjectDelete: (projectId: string) => void;
   onProjectToggle: (projectId: string, active: boolean) => void;
   onCreateProject: () => void;
-  onAddDocument: (projectId: string, file: File) => Promise<void>;
+  onAddDocument: (projectId: string, file: File, onProgress?: (progress: number) => void) => Promise<void>;
   onDeleteDocument: (projectId: string, documentId: string) => Promise<void>;
 }
 
@@ -28,7 +34,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
   onDeleteDocument,
 }) => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [processingFiles, setProcessingFiles] = useState<string[]>([]);
+  const [processingFiles, setProcessingFiles] = useState<Record<string, ProcessingFile>>({});
   const [error, setError] = useState<string | null>(null);
 
   const handleAddDocument = async (file: File) => {
@@ -36,14 +42,44 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
     
     try {
       setError(null);
-      setProcessingFiles(prev => [...prev, file.name]);
-      await onAddDocument(selectedProject.id, file);
+      // Add file to processing state with 0 progress
+      setProcessingFiles(prev => ({
+        ...prev,
+        [file.name]: { fileName: file.name, progress: 0 }
+      }));
+
+      await onAddDocument(
+        selectedProject.id, 
+        file,
+        (progress: number) => {
+          // Ensure the progress update triggers a re-render
+          setProcessingFiles(prev => ({
+            ...prev,
+            [file.name]: { 
+              fileName: file.name, 
+              progress: Math.round(progress) 
+            }
+          }));
+        }
+      );
+
+      // Remove file from processing state when complete
+      setProcessingFiles(prev => {
+        const newState = { ...prev };
+        delete newState[file.name];
+        return newState;
+      });
+
     } catch (err) {
       console.error('Error adding document:', err);
       setError(err instanceof Error ? err.message : 'Failed to add document');
-      throw err;
-    } finally {
-      setProcessingFiles(prev => prev.filter(name => name !== file.name));
+      
+      // Remove file from processing state on error
+      setProcessingFiles(prev => {
+        const newState = { ...prev };
+        delete newState[file.name];
+        return newState;
+      });
     }
   };
 
@@ -56,8 +92,12 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
     } catch (err) {
       console.error('Error deleting document:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete document');
-      throw err;
     }
+  };
+
+  // Function to get all processing files for a specific project
+  const getProjectProcessingFiles = (projectId: string) => {
+    return selectedProject?.id === projectId ? Object.values(processingFiles) : [];
   };
 
   return (
@@ -102,16 +142,24 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
                   </div>
 
                   {/* Processing Files Indicator */}
-                  {processingFiles.length > 0 && selectedProject?.id === project.id && (
-                    <div className="mt-2">
-                      {processingFiles.map(fileName => (
-                        <div key={fileName} className="flex items-center gap-2 text-sm text-zinc-400">
-                          <Loader2 className="animate-spin" size={12} />
-                          <span>Processing {fileName}...</span>
-                        </div>
-                      ))}
+                  {getProjectProcessingFiles(project.id).map(file => (
+                    <div key={file.fileName} className="mt-2 bg-zinc-700/30 rounded-lg p-2">
+                      <div className="flex items-center gap-2 text-sm text-zinc-300">
+                        <Loader2 className="animate-spin" size={12} />
+                        <span>{file.fileName}</span>
+                        <span className="text-zinc-400">
+                          {Math.round(file.progress)}%
+                        </span>
+                      </div>
+                      {/* Progress bar */}
+                      <div className="mt-1 h-1 bg-zinc-600 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 transition-all duration-300"
+                          style={{ width: `${file.progress}%` }}
+                        />
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -200,7 +248,6 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
           documents={selectedProject.documents}
           onAddDocument={handleAddDocument}
           onDeleteDocument={handleDeleteDocument}
-          processingFiles={processingFiles}
         />
       )}
     </>
