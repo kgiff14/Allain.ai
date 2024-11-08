@@ -2,20 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Settings2, FolderOpen, HardDrive } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ConfigDrawer from '../ui/ConfigDrawer';
+import { MemoryIndicator } from '../memories/MemoryIndicator';
+import { MemoriesModal } from '../memories/MemoriesModal';
 import { MemoryManagementDrawer } from '../ui/MemoryManagementDrawer';
 import { usePersona } from '../../hooks/usePersona';
 import { projectStore } from '../../services/projectStore';
+import { personaStore } from '../../services/personaStore';
 import { Alert } from '../ui/alert';
 
-// Thread page header (with back and delete buttons)
-export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDeleteChat: () => void }> = ({ 
+export const ChatThreadHeader: React.FC<{ 
+  currentChatId: string | null; 
+  onDeleteChat: () => void 
+}> = ({ 
   currentChatId, 
   onDeleteChat 
 }) => {
   const navigate = useNavigate();
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
+  const [isMemoriesModalOpen, setIsMemoriesModalOpen] = useState(false);
   const [showProjectInfo, setShowProjectInfo] = useState(false);
+  const [newMemoryId, setNewMemoryId] = useState<string>();
   const persona = usePersona();
   const [activeProjects, setActiveProjects] = useState<{ id: string; name: string; }[]>([]);
 
@@ -36,6 +43,24 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
       window.removeEventListener('project-updated', loadActiveProjects);
     };
   }, []);
+
+  const handleAddMemory = (content: string) => {
+    const memoryId = Date.now().toString();
+    personaStore.addMemory(persona.id, {
+      content,
+      createdAt: new Date(),
+      source: 'manual'
+    });
+    setNewMemoryId(memoryId);
+  };
+
+  const handleDeleteMemory = (memoryId: string) => {
+    personaStore.removeMemory(persona.id, memoryId);
+  };
+
+  const handleUpdateMemoryConfig = (config: any) => {
+    personaStore.updateMemoryConfig(persona.id, config);
+  };
 
   return (
     <>
@@ -60,8 +85,7 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
           </div>
 
           <div className="max-w-[980px] mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-between">
-            {/* Back Button - With left margin to account for absolute positioned icons */}
-            <div className="flex items-center ">
+            <div className="flex items-center">
               <button
                 onClick={() => navigate('/')}
                 className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200"
@@ -70,8 +94,12 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
               </button>
             </div>
 
-            {/* Center - Dynamic Title & RAG Status */}
             <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3">
+              <MemoryIndicator
+                persona={persona}
+                onOpenMemories={() => setIsMemoriesModalOpen(true)}
+                newMemoryId={newMemoryId}
+              />
               <span className="text-white font-semibold">{persona.name}</span>
               {activeProjects.length > 0 && (
                 <div className="relative">
@@ -102,7 +130,6 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
               )}
             </div>
             
-            {/* Right side - Delete Button */}
             <div className="flex-shrink-0">
               <button
                 onClick={onDeleteChat}
@@ -124,7 +151,7 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
         )}
       </div>
 
-      {/* Drawers */}
+      {/* Drawers and Modals */}
       <ConfigDrawer 
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
@@ -132,6 +159,14 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
       <MemoryManagementDrawer
         isOpen={isMemoryOpen}
         onClose={() => setIsMemoryOpen(false)}
+      />
+      <MemoriesModal
+        isOpen={isMemoriesModalOpen}
+        onClose={() => setIsMemoriesModalOpen(false)}
+        persona={persona}
+        onAddMemory={handleAddMemory}
+        onDeleteMemory={handleDeleteMemory}
+        onUpdateMemoryConfig={handleUpdateMemoryConfig}
       />
     </>
   );

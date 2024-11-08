@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Settings2, FolderOpen, HardDrive } from 'lucide-react';
 import ConfigDrawer from '../ui/ConfigDrawer';
+import { MemoryIndicator } from '../memories/MemoryIndicator';
+import { MemoriesModal } from '../memories/MemoriesModal';
 import { MemoryManagementDrawer } from '../ui/MemoryManagementDrawer';
 import { usePersona } from '../../hooks/usePersona';
 import { projectStore } from '../../services/projectStore';
+import { personaStore } from '../../services/personaStore';
 import { Alert } from '../ui/alert';
 
 // Common header interface to share between both components
 export const ChatInputHeader: React.FC = () => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
+  const [isMemoriesModalOpen, setIsMemoriesModalOpen] = useState(false);
   const [showProjectInfo, setShowProjectInfo] = useState(false);
+  const [newMemoryId, setNewMemoryId] = useState<string>();
   const persona = usePersona();
   const [activeProjects, setActiveProjects] = useState<{ id: string; name: string; }[]>([]);
 
@@ -31,6 +36,24 @@ export const ChatInputHeader: React.FC = () => {
       window.removeEventListener('project-updated', loadActiveProjects);
     };
   }, []);
+
+  const handleAddMemory = (content: string) => {
+    const memoryId = Date.now().toString();
+    personaStore.addMemory(persona.id, {
+      content,
+      createdAt: new Date(),
+      source: 'manual'
+    });
+    setNewMemoryId(memoryId);
+  };
+
+  const handleDeleteMemory = (memoryId: string) => {
+    personaStore.removeMemory(persona.id, memoryId);
+  };
+
+  const handleUpdateMemoryConfig = (config: any) => {
+    personaStore.updateMemoryConfig(persona.id, config);
+  };
 
   return (
     <>
@@ -57,6 +80,11 @@ export const ChatInputHeader: React.FC = () => {
           <div className="max-w-[1600px] mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-center">
             {/* Center - Dynamic Title & RAG Status */}
             <div className="flex items-center gap-3">
+              <MemoryIndicator
+                persona={persona}
+                onOpenMemories={() => setIsMemoriesModalOpen(true)}
+                newMemoryId={newMemoryId}
+              />
               <span className="text-white font-semibold">{persona.name}</span>
               {activeProjects.length > 0 && (
                 <div className="relative">
@@ -99,7 +127,7 @@ export const ChatInputHeader: React.FC = () => {
         )}
       </div>
 
-      {/* Drawers */}
+      {/* Drawers and Modals */}
       <ConfigDrawer 
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
@@ -107,6 +135,14 @@ export const ChatInputHeader: React.FC = () => {
       <MemoryManagementDrawer
         isOpen={isMemoryOpen}
         onClose={() => setIsMemoryOpen(false)}
+      />
+      <MemoriesModal
+        isOpen={isMemoriesModalOpen}
+        onClose={() => setIsMemoriesModalOpen(false)}
+        persona={persona}
+        onAddMemory={handleAddMemory}
+        onDeleteMemory={handleDeleteMemory}
+        onUpdateMemoryConfig={handleUpdateMemoryConfig}
       />
     </>
   );
