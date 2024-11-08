@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings2, FolderOpen, Info, Gauge } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Settings2, FolderOpen, Gauge } from 'lucide-react';
 import ConfigDrawer from '../ui/ConfigDrawer';
 import { MemoryManagementDrawer } from '../ui/MemoryManagementDrawer';
 import { usePersona } from '../../hooks/usePersona';
 import { projectStore } from '../../services/projectStore';
 import { Alert } from '../ui/alert';
 
-// Thread page header (with back and delete buttons)
-export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDeleteChat: () => void }> = ({ 
-  currentChatId, 
-  onDeleteChat 
-}) => {
-  const navigate = useNavigate();
+// Common header interface to share between both components
+export const ChatInputHeader: React.FC = () => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
   const [showProjectInfo, setShowProjectInfo] = useState(false);
@@ -59,19 +54,9 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
             </button>
           </div>
 
-          <div className="max-w-[980px] mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-between">
-            {/* Back Button - With left margin to account for absolute positioned icons */}
-            <div className="flex items-center ">
-              <button
-                onClick={() => navigate('/')}
-                className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200"
-              >
-                <ArrowLeft size={20} />
-              </button>
-            </div>
-
+          <div className="max-w-[1600px] mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-center">
             {/* Center - Dynamic Title & RAG Status */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <span className="text-white font-semibold">{persona.name}</span>
               {activeProjects.length > 0 && (
                 <div className="relative">
@@ -100,16 +85,6 @@ export const ChatThreadHeader: React.FC<{ currentChatId: string | null; onDelete
                   )}
                 </div>
               )}
-            </div>
-            
-            {/* Right side - Delete Button */}
-            <div className="flex-shrink-0">
-              <button
-                onClick={onDeleteChat}
-                className="text-red-400 hover:text-red-300 text-sm"
-              >
-                Delete Chat
-              </button>
             </div>
           </div>
         </div>

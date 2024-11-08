@@ -1,7 +1,7 @@
 // components/chat/ChatInputPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings2, FolderOpen, Info } from 'lucide-react';
+import { Settings2, FolderOpen, Info, Gauge } from 'lucide-react';
 import ChatInput from './ChatInput';
 import { ChatHistory } from './ChatHistory';
 import { ProjectDrawer } from '../projects/ProjectDrawer';
@@ -11,6 +11,8 @@ import { chatStore } from '../../utils/chatStore';
 import { Model } from './ModelSelector';
 import { usePersona } from '../../hooks/usePersona';
 import { projectStore } from '../../services/projectStore';
+import { MemoryManagementDrawer } from '../ui/MemoryManagementDrawer';
+import { ChatInputHeader } from './BaseHeader';
 
 const ChatInputPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +22,7 @@ const ChatInputPage: React.FC = () => {
   const persona = usePersona();
   const [activeProjects, setActiveProjects] = useState<{ id: string; name: string; }[]>([]);
   const [showProjectInfo, setShowProjectInfo] = useState(false);
+  const [isMemoryOpen, setIsMemoryOpen] = useState(false);
 
   useEffect(() => {
     const loadActiveProjects = () => {
@@ -67,53 +70,7 @@ const ChatInputPage: React.FC = () => {
 
   return (
     <div className="h-screen bg-zinc-900 flex flex-col">
-      {/* Header */}
-      <div className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-10">
-        <div className="relative w-full">
-          <div className="max-w-16xl mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-between">
-            {/* Left side - Config button */}
-            <button
-              onClick={() => setIsConfigOpen(true)}
-              className="text-zinc-400 hover:text-white transition-colors duration-200"
-              aria-label="Open configuration"
-            >
-              <Settings2 size={20} />
-            </button>
-
-            {/* Center - Dynamic Title */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3">
-            <span className="text-white font-semibold">{persona.name}</span>
-              {activeProjects.length > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowProjectInfo(!showProjectInfo)}
-                    className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-sm bg-zinc-800/50 px-2 py-1 rounded"
-                  >
-                    <FolderOpen size={14} />
-                    <span>{activeProjects.length} active project{activeProjects.length !== 1 ? 's' : ''}</span>
-                  </button>
-
-                  {showProjectInfo && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-zinc-800 border border-zinc-700 rounded-lg p-3 shadow-lg">
-                      <div className="text-sm text-zinc-300 mb-2">
-                        Active projects used for context:
-                      </div>
-                      <div className="space-y-1">
-                        {activeProjects.map(project => (
-                          <div key={project.id} className="text-sm text-zinc-400 flex items-center gap-2">
-                            <FolderOpen size={12} />
-                            <span>{project.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <ChatInputHeader />
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4">
@@ -147,6 +104,10 @@ const ChatInputPage: React.FC = () => {
       <ConfigDrawer 
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
+      />
+      <MemoryManagementDrawer
+        isOpen={isMemoryOpen}
+        onClose={() => setIsMemoryOpen(false)}
       />
     </div>
   );

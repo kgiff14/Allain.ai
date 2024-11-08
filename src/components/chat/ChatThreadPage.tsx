@@ -7,7 +7,7 @@ import { documentStore } from '../../utils/documentStore';
 import {ProjectDrawer} from '../projects/ProjectDrawer';
 import ScrollToBottomButton from '../ui/ScrollToBottomButton';
 import { Model } from './ModelSelector';
-import { ChatHeader } from './ChatThreadHeader';
+import { ChatThreadHeader } from './ChatThreadHeader';
 import { MessageContainer } from './MessageContainer';
 import { ChatInputContainer } from './ChatInputContainer';
 import { useChat } from '../../hooks/useChat';
@@ -92,7 +92,7 @@ const ChatThreadPage: React.FC = () => {
 
   return (
     <div className="h-screen bg-zinc-900 flex flex-col">
-      <ChatHeader 
+      <ChatThreadHeader 
         currentChatId={currentChatId} 
         onDeleteChat={deleteChat}
       />
