@@ -1,6 +1,6 @@
 // components/projects/ProjectDrawer.tsx
 import React, { useState } from 'react';
-import { X, FolderOpen } from 'lucide-react';
+import { X, FolderOpen, Plus } from 'lucide-react';
 import { ProjectModal } from './ProjectModal';
 import ProjectManagement from './ProjectManagement';  // Import our new component
 import { CreateProjectInput } from '../../types/project';
@@ -84,8 +84,9 @@ export const ProjectDrawer: React.FC<ProjectDrawerProps> = ({
             </div>
             <button
               onClick={handleCreateProject}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors"
+              className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
             >
+                <Plus size={16} />
               New Project
             </button>
           </div>
