@@ -42,20 +42,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ currentChatId, onDeleteC
         <div className="relative w-full">
           <button
             onClick={() => setIsConfigOpen(true)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors duration-200"
+            className="absolute left-8 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors duration-200"
             aria-label="Open configuration"
           >
             <Settings2 size={20} />
           </button>
 
-          <div className="max-w-6xl mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-between">
+          <div className="max-w-4xl mx-auto w-full px-4 md:px-8 py-4 flex items-center justify-between">
             <div className="flex-1 flex items-center">
               <button
                 onClick={() => navigate('/')}
                 className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors duration-200"
               >
                 <ArrowLeft size={20} />
-                <span>Back to Home</span>
               </button>
             </div>
 
