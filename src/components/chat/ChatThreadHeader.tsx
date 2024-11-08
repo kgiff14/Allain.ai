@@ -105,9 +105,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ currentChatId, onDeleteC
 
         {/* Project Warning */}
         {activeProjects.length === 0 && (
-          <div className="max-w-6xl mx-auto px-4 md:px-8 pb-4">
+          <div className="max-w-xl mx-auto px-4 md:px-8 pb-4">
             <Alert>
-              <Info className="h-4 w-4" />
               <span>No active projects. Enable projects in the settings to use your documents for context.</span>
             </Alert>
           </div>
