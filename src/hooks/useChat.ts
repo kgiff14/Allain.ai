@@ -6,8 +6,6 @@ import { chatStore } from '../utils/chatStore';
 import { enhancedChatService } from '../services/enhancedChatService';
 import { Model } from '../components/chat/ModelSelector';
 import { useRAGContext } from './useRAGContext';
-import { memoryService } from '../services/memoryService';
-import { usePersona } from './usePersona'; // Add this import
 
 // Helper to create a persistent blob URL from a File
 const createPersistentBlobUrl = async (file: File): Promise<string> => {
@@ -38,7 +36,6 @@ export const useChat = (chatId?: string) => {
   
   const navigate = useNavigate();
   const { getRelevantContext } = useRAGContext();
-  const persona = usePersona(); // Add this line to get the current persona
 
   useEffect(() => {
     if (chatId) {
