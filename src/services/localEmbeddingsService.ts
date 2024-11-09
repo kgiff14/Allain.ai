@@ -6,15 +6,6 @@ const MAX_SEQUENCE_LENGTH = 512;
 const WORKER_BATCH_THRESHOLD = 10; // Minimum batch size to use worker
 const MAX_PARALLEL_BATCHES = 3;    // Maximum number of parallel worker batches
 
-// Define the worker path based on environment
-// Ensure environment is properly typed
-declare const process: {
-  env: {
-    NODE_ENV: 'development' | 'production' | 'test'
-  }
-};
-
-const WORKER_PATH = '/workers/embedWorker.js';
 
 class LocalEmbeddingsService {
   private model: any = null;
@@ -34,12 +25,91 @@ class LocalEmbeddingsService {
   }
 
   private initWorker() {
+    // Check if we're in a browser environment that supports web workers
+    if (typeof window === 'undefined' || !window.Worker) {
+      console.warn('Web Workers not supported - falling back to main thread processing');
+      return;
+    }
+
     try {
-      // Create worker with explicit path and error handling
-      this.worker = new Worker(WORKER_PATH);
+      // Create a worker using inline code
+      const workerCode = `
+        let model = null;
+        const MAX_SEQUENCE_LENGTH = 512;
+
+        // Load TensorFlow.js and USE from CDN
+        self.importScripts(
+          'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js',
+          'https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder'
+        );
+
+        async function initializeModel() {
+          if (!model) {
+            try {
+              await tf.setBackend('webgl');
+            } catch {
+              await tf.setBackend('cpu');
+            }
+            await tf.ready();
+            model = await use.load();
+          }
+        }
+
+        function truncateText(text) {
+          const words = text.split(' ');
+          return words.length > MAX_SEQUENCE_LENGTH 
+            ? words.slice(0, MAX_SEQUENCE_LENGTH).join(' ') 
+            : text;
+        }
+
+        async function generateEmbeddings(texts) {
+          await initializeModel();
+          const processedTexts = texts.map(text => truncateText(text.trim()));
+          const embeddings = await model.embed(processedTexts);
+          const embeddingData = await embeddings.data();
+          const embedDim = embeddingData.length / texts.length;
+          const result = [];
+          
+          for (let i = 0; i < texts.length; i++) {
+            const start = i * embedDim;
+            const end = start + embedDim;
+            result.push(Array.from(embeddingData.slice(start, end)));
+          }
+          
+          embeddings.dispose();
+          return result;
+        }
+
+        self.onmessage = async (e) => {
+          try {
+            const { texts, batchId } = e.data;
+            const embeddings = await generateEmbeddings(texts);
+            self.postMessage({ embeddings, batchId, error: null });
+          } catch (error) {
+            self.postMessage({ 
+              embeddings: null, 
+              batchId: e.data.batchId,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          } finally {
+            if (self.tf) self.tf.dispose();
+          }
+        };
+
+        self.postMessage({ type: 'ready' });
+      `;
+
+      // Create a blob from the worker code
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      const workerUrl = URL.createObjectURL(blob);
+      this.worker = new Worker(workerUrl);
       
+      // Clean up the URL once the worker is created
+      URL.revokeObjectURL(workerUrl);
+
       this.worker.onmessage = (e) => {
         if (e.data.type === 'ready') {
+          console.log('Embedding worker initialized successfully');
           this.workerReady = true;
           return;
         }

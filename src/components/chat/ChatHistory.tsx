@@ -3,6 +3,7 @@ import { Trash2, HardDrive } from 'lucide-react';
 import { Chat } from '../../types/types';
 import { formatTimestamp } from '../../utils/formatTimestamp';
 import { formatBytes } from '../../utils/formatBytes';
+import { chatStore } from '../../utils/chatStore';
 
 interface ChatHistoryProps {
   chats: Chat[];
@@ -27,10 +28,11 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
     });
   }, [chats]);
 
-  const handleDeleteChat = async (chatId: string, event: React.MouseEvent) => {
+  const handleDeleteChat = (chatId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     try {
-      await window.fs.unlink(`chat-${chatId}.json`);
+      // Use chatStore instead of file system
+      chatStore.deleteChat(chatId);
       if (onChatDeleted) {
         onChatDeleted();
       }
