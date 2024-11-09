@@ -1,4 +1,3 @@
-// hooks/useRAGContext.ts
 import { useEffect, useState, useCallback } from 'react';
 import { projectStore } from '../services/projectStore';
 import { embeddingsService } from '../services/localEmbeddingsService';
@@ -14,35 +13,7 @@ interface DocumentContext {
 export const useRAGContext = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isVectorStoreReady, setVectorStoreReady] = useState(false);
   const [lastDeleteTime, setLastDeleteTime] = useState<number>(0);
-
-  // Initialize and handle vector store updates
-  useEffect(() => {
-    const handleVectorsUpdated = () => {
-      setVectorStoreReady(true);
-      console.log('Vector store updated and ready');
-    };
-
-    const handleDocumentDeleted = () => {
-      setLastDeleteTime(Date.now());
-      console.log('Document deletion detected, updating context...');
-    };
-
-    // Listen for vector store and document updates
-    window.addEventListener('vectors-updated', handleVectorsUpdated);
-    window.addEventListener('document-deleted', handleDocumentDeleted);
-    
-    // Initial check
-    improvedVectorStore.init().then(() => {
-      setVectorStoreReady(true);
-    });
-
-    return () => {
-      window.removeEventListener('vectors-updated', handleVectorsUpdated);
-      window.removeEventListener('document-deleted', handleDocumentDeleted);
-    };
-  }, []);
 
   const validateDocumentExists = useCallback(async (fileName: string): Promise<boolean> => {
     try {
@@ -56,13 +27,7 @@ export const useRAGContext = () => {
 
   const getRelevantContext = useCallback(async (query: string): Promise<string> => {
     try {
-      if (!isVectorStoreReady) {
-        console.log('Waiting for vector store to be ready...');
-        await new Promise(resolve => 
-          window.addEventListener('vectors-updated', resolve, { once: true })
-        );
-      }
-
+      console.log('Starting context retrieval...');
       setIsLoading(true);
       setError(null);
 
@@ -82,6 +47,15 @@ export const useRAGContext = () => {
       const queryEmbedding = await embeddingsService.generateQueryEmbedding(query);
       console.log('Generated query embedding');
 
+      // Initialize vector store if needed
+      try {
+        await improvedVectorStore.init();
+        console.log('Vector store initialized');
+      } catch (error) {
+        console.error('Vector store initialization failed:', error);
+        throw error;
+      }
+
       // Search for relevant vectors
       console.log('Searching for similar vectors...');
       const results: Vector[] = await improvedVectorStore.findSimilarVectors(
@@ -95,11 +69,9 @@ export const useRAGContext = () => {
       const contexts = await Promise.all(
         results.map(async (result): Promise<DocumentContext | null> => {
           try {
-            // Validate file still exists
             const exists = await validateDocumentExists(result.metadata.fileName);
             if (!exists) {
               console.log(`Skipping missing file: ${result.metadata.fileName}`);
-              // Clean up vector store entry for missing file
               await improvedVectorStore.deleteDocumentVectors(result.metadata.documentId);
               return null;
             }
@@ -121,18 +93,13 @@ export const useRAGContext = () => {
         })
       );
 
-      // Filter out failed loads and format context
-      const validContexts = contexts.filter((ctx): ctx is DocumentContext => 
-        ctx !== null
-      );
+      const validContexts = contexts.filter((ctx): ctx is DocumentContext => ctx !== null);
       console.log('Valid contexts found:', validContexts.length);
 
       if (validContexts.length === 0) {
-        console.log('No valid contexts found');
         return '';
       }
 
-      // Format contexts into a single string
       const formattedContext = validContexts
         .map(ctx => {
           const similarityPercentage = Math.round(ctx.similarity * 100);
@@ -140,7 +107,7 @@ export const useRAGContext = () => {
         })
         .join('\n---\n\n');
 
-      console.log('Generated context with length:', formattedContext.length);
+      console.log('Context retrieval completed successfully');
       return `Relevant context from your documents:\n\n${formattedContext}\n\nPlease use this context to inform your response while maintaining a natural conversation flow.`;
 
     } catch (error) {
@@ -150,7 +117,7 @@ export const useRAGContext = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isVectorStoreReady, validateDocumentExists, lastDeleteTime]);
+  }, [validateDocumentExists, lastDeleteTime]);
 
   return {
     getRelevantContext,
