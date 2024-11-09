@@ -9,11 +9,17 @@ interface HNSWNode {
   connections: Map<number, Set<string>>; // level -> neighbor ids
 }
 
+interface SearchResult extends Omit<Vector, 'similarity'> {
+  similarity: number;  // Make similarity required
+}
+
 class ImprovedVectorStore {
   private db: IDBDatabase | null = null;
   private readonly DB_NAME = 'VectorStoreDB';
   private readonly STORE_NAME = 'vectors';
   private readonly BATCH_SIZE = 50;
+  private isInitialized: boolean = false;
+  private initializationPromise: Promise<void> | null = null;
   
   // HNSW parameters
   private readonly MAX_LEVEL = 4;
@@ -21,10 +27,31 @@ class ImprovedVectorStore {
   private graph: Map<string, HNSWNode> = new Map();
   private entryPoints: string[] = [];
 
-  async init() {
-    if (this.db) return;
-    await this.initDatabase();
-    await this.loadGraphFromDB();
+  async init(): Promise<void> {
+    if (this.isInitialized) return;
+    
+    if (!this.initializationPromise) {
+      this.initializationPromise = this.initialize();
+    }
+    
+    return this.initializationPromise;
+  }
+
+  private async initialize(): Promise<void> {
+    try {
+      await this.initDatabase();
+      await this.loadGraphFromDB();
+      this.isInitialized = true;
+      console.log('Vector store initialized successfully');
+      this.notifySubscribers();
+    } catch (error) {
+      console.error('Vector store initialization failed:', error);
+      throw error;
+    }
+  }
+
+  isReady(): boolean {
+    return this.isInitialized;
   }
 
   private async initDatabase(): Promise<void> {
@@ -66,6 +93,7 @@ class ImprovedVectorStore {
   }
 
   private buildHNSWGraph(vectors: Vector[]): void {
+    console.log('Building HNSW graph with', vectors.length, 'vectors');
     this.graph.clear();
     this.entryPoints = [];
 
@@ -96,6 +124,8 @@ class ImprovedVectorStore {
     for (const node of this.graph.values()) {
       this.connectNode(node);
     }
+
+    console.log('HNSW graph built successfully');
   }
 
   private getRandomLevel(): number {
@@ -137,32 +167,45 @@ class ImprovedVectorStore {
   ): string[] {
     const candidates = new Set<string>();
     const visited = new Set<string>();
+    const results: Array<{ id: string; similarity: number }> = [];
 
-    // Start from entry points
-    let currentBest = this.entryPoints[Math.min(level, this.entryPoints.length - 1)];
-    candidates.add(currentBest);
+    // Start from entry points or fallback to linear search if no entry points
+    if (this.entryPoints.length > 0) {
+      let currentBest = this.entryPoints[Math.min(level, this.entryPoints.length - 1)];
+      candidates.add(currentBest);
 
-    while (candidates.size > 0) {
-      // Get the closest unvisited candidate
-      currentBest = this.getClosestCandidate(queryVector, candidates, visited);
-      visited.add(currentBest);
+      while (candidates.size > 0) {
+        const nextId = this.getClosestCandidate(queryVector, candidates, visited);
+        if (!nextId) break;
 
-      // Add neighbors to candidates
-      const node = this.graph.get(currentBest)!;
-      const connections = node.connections.get(level) || new Set();
-      for (const neighborId of connections) {
-        if (!visited.has(neighborId) && !excluded.has(neighborId)) {
-          candidates.add(neighborId);
+        visited.add(nextId);
+        const node = this.graph.get(nextId);
+        if (!node) continue;
+
+        // Calculate similarity and add to results
+        const similarity = this.cosineSimilarity(queryVector, node.vector);
+        results.push({ id: nextId, similarity });
+
+        // Add neighbors to candidates
+        const connections = node.connections.get(level) || new Set();
+        for (const neighborId of connections) {
+          if (!visited.has(neighborId) && !excluded.has(neighborId)) {
+            candidates.add(neighborId);
+          }
+        }
+      }
+    } else {
+      // Fallback to linear search if no graph structure
+      for (const [id, node] of this.graph.entries()) {
+        if (!excluded.has(id)) {
+          const similarity = this.cosineSimilarity(queryVector, node.vector);
+          results.push({ id, similarity });
         }
       }
     }
 
-    // Return k nearest from visited nodes
-    return Array.from(visited)
-      .map(id => ({
-        id,
-        similarity: this.cosineSimilarity(queryVector, this.graph.get(id)!.vector)
-      }))
+    // Sort by similarity and return top k
+    return results
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, k)
       .map(result => result.id);
@@ -172,23 +215,31 @@ class ImprovedVectorStore {
     queryVector: number[],
     candidates: Set<string>,
     visited: Set<string>
-  ): string {
+  ): string | null {
     let bestSimilarity = -1;
-    let bestId = Array.from(candidates)[0];
+    let bestId: string | null = null;
 
     for (const id of candidates) {
       if (visited.has(id)) continue;
-      const similarity = this.cosineSimilarity(
-        queryVector,
-        this.graph.get(id)!.vector
-      );
+      
+      const node = this.graph.get(id);
+      if (!node) {
+        console.warn(`Node ${id} not found in graph`);
+        candidates.delete(id);
+        continue;
+      }
+
+      const similarity = this.cosineSimilarity(queryVector, node.vector);
       if (similarity > bestSimilarity) {
         bestSimilarity = similarity;
         bestId = id;
       }
     }
 
-    candidates.delete(bestId);
+    if (bestId) {
+      candidates.delete(bestId);
+    }
+    
     return bestId;
   }
 
@@ -196,33 +247,51 @@ class ImprovedVectorStore {
     queryVector: number[],
     projectIds: string[],
     limit: number = 5
-  ): Promise<Vector[]> {
-    if (!this.db) throw new Error('Database not initialized');
+  ): Promise<SearchResult[]> {
+    await this.init();
 
-    // Use HNSW to find candidate vectors
-    const candidates = this.findNearestNeighbors(
-      queryVector,
-      limit * 2, // Get more candidates than needed to filter by project
-      0,
-      new Set()
-    );
+    if (this.graph.size === 0) {
+      console.log('Vector store is empty');
+      return [];
+    }
 
-    // Filter and rank candidates
-    const results = candidates
-      .map(id => {
-        const node = this.graph.get(id)!;
-        return {
-          id: node.id,
-          vector: node.vector,
-          metadata: node.metadata,
-          similarity: this.cosineSimilarity(queryVector, node.vector)
-        };
-      })
-      .filter(vector => projectIds.includes(vector.metadata.projectId))
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    try {
+      // Find candidate vectors
+      const candidates = this.findNearestNeighbors(
+        queryVector,
+        limit * 2, // Get more candidates than needed to filter by project
+        0,
+        new Set()
+      );
 
-    return results;
+      // Filter and rank candidates
+      const results = candidates
+        .map(id => {
+          const node = this.graph.get(id);
+          if (!node) return null;
+
+          const similarity = this.cosineSimilarity(queryVector, node.vector);
+          return {
+            id: node.id,
+            vector: node.vector,
+            metadata: node.metadata,
+            similarity  // Guaranteed to be a number from cosineSimilarity
+          };
+        })
+        .filter((result): result is SearchResult => 
+          result !== null && 
+          projectIds.includes(result.metadata.projectId)
+        )
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit);
+
+      console.log(`Found ${results.length} similar vectors`);
+      return results;
+
+    } catch (error) {
+      console.error('Error finding similar vectors:', error);
+      throw error;
+    }
   }
 
   // Batch vector addition with transaction management
@@ -347,10 +416,28 @@ class ImprovedVectorStore {
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
-    const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-    const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-    const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-    return dotProduct / (magnitudeA * magnitudeB);
+    if (a.length !== b.length) {
+      throw new Error('Vectors must have same length');
+    }
+    
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    
+    normA = Math.sqrt(normA);
+    normB = Math.sqrt(normB);
+    
+    if (normA === 0 || normB === 0) {
+      return 0;
+    }
+    
+    return dotProduct / (normA * normB);
   }
 
   // Delete all vectors for a specific document
