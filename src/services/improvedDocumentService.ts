@@ -17,6 +17,14 @@ class ImprovedDocumentService {
   private BATCH_SIZE = 5;
   private CHUNK_SIZE = 1000;
   private CODE_CHUNK_SIZE = 25;
+  private vectorStoreUnsubscribe: (() => void) | null = null;
+
+  constructor() {
+    // Subscribe to vector store updates
+    this.vectorStoreUnsubscribe = improvedVectorStore.subscribe(() => {
+      window.dispatchEvent(new CustomEvent('vectors-updated'));
+    });
+  }
 
   // Process document with better progress tracking and error handling
   async processDocument(
@@ -87,6 +95,8 @@ class ImprovedDocumentService {
         status: 'completed',
         progress: 100
       });
+
+      window.dispatchEvent(new CustomEvent('vectors-updated'));
 
       return document;
 
